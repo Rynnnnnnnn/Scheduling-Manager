@@ -1,0 +1,1218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7f5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Daybook">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+  <title>Daybook — Schedule Manager</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #242a28;
+      --muted: #78817d;
+      --line: #e8ebe8;
+      --paper: #fff;
+      --canvas: #f6f7f5;
+      --green: #2e705b;
+      --green-dark: #245c49;
+      --green-pale: #eaf3ee;
+      --amber: #a56d1d;
+      --amber-pale: #fbf2df;
+      --shadow: 0 12px 36px rgba(34, 49, 42, .06);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    .app { max-width: 1180px; margin: 0 auto; padding: 32px 28px 56px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 34px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      width: 40px; height: 40px; display: grid; place-items: center; color: white;
+      background: var(--green); border-radius: 13px;
+    }
+    .brand-mark svg { width: 21px; height: 21px; }
+    .brand-name { font-size: 16px; font-weight: 720; letter-spacing: -.03em; }
+    .brand-subtitle { color: var(--muted); font-size: 12px; margin-top: -2px; }
+    .today-label { color: var(--muted); font-size: 13px; }
+    .intro { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 26px; }
+    h1 { margin: 0; font-size: clamp(29px, 4vw, 37px); letter-spacing: -.055em; line-height: 1.15; font-weight: 690; }
+    .intro p { color: var(--muted); margin: 8px 0 0; }
+    .button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+      min-height: 44px; padding: 0 16px; border: 0; border-radius: 11px;
+      color: white; background: var(--green); font-weight: 650;
+      transition: background-color .16s ease, transform .16s ease, box-shadow .16s ease;
+      white-space: nowrap;
+    }
+    .button:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .button svg { width: 17px; height: 17px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 24px; }
+    .stat {
+      padding: 19px 21px; background: var(--paper); border: 1px solid var(--line);
+      border-radius: 15px;
+    }
+    .stat-label { color: var(--muted); font-size: 13px; font-weight: 540; }
+    .stat-value { display: flex; align-items: baseline; gap: 8px; margin-top: 7px; font-size: 27px; letter-spacing: -.045em; font-weight: 680; }
+    .stat-detail { color: var(--muted); font-size: 12px; letter-spacing: 0; font-weight: 450; }
+    .content {
+      overflow: hidden; background: var(--paper); border: 1px solid var(--line);
+      border-radius: 16px; box-shadow: var(--shadow);
+    }
+    .view-tabs { display: flex; gap: 20px; padding: 0 22px; border-bottom: 1px solid var(--line); }
+    .view-tab {
+      padding: 14px 2px 12px; color: var(--muted); background: transparent;
+      border: 0; border-bottom: 2px solid transparent; font-size: 13px; font-weight: 620;
+      transition: color .18s ease, border-color .18s ease;
+    }
+    .view-tab.active { color: var(--green); border-bottom-color: var(--green); }
+    .view-panel[hidden] { display: none; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 19px 22px; border-bottom: 1px solid var(--line); }
+    .toolbar h2 { margin: 0; font-size: 16px; letter-spacing: -.02em; }
+    .toolbar-right { display: flex; align-items: center; gap: 10px; }
+    .search-wrap { position: relative; }
+    .search-wrap svg { position: absolute; top: 50%; left: 12px; width: 16px; height: 16px; color: #909994; transform: translateY(-50%); pointer-events: none; }
+    .search, .filter {
+      height: 39px; border: 1px solid var(--line); border-radius: 9px; outline: none;
+      color: var(--ink); background: white; font-size: 13px;
+      transition: border-color .16s ease, box-shadow .16s ease;
+    }
+    .search { width: 215px; padding: 0 12px 0 36px; }
+    .filter { padding: 0 29px 0 11px; }
+    .search:focus, .filter:focus, .field input:focus, .field textarea:focus { border-color: #9ab9aa; box-shadow: 0 0 0 3px rgba(46,112,91,.09); }
+    .booking-list { padding: 0 22px; }
+    .booking {
+      display: grid; grid-template-columns: 88px minmax(0, 1fr) auto; align-items: center;
+      gap: 18px; padding: 18px 0; border-bottom: 1px solid #eef0ee;
+    }
+    .booking:last-child { border-bottom: 0; }
+    .booking-time { color: var(--green); font-size: 13px; font-weight: 650; }
+    .booking-date { color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .booking-main { min-width: 0; }
+    .client-name { overflow: hidden; font-size: 14px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+    .notes {
+      overflow: hidden; margin-top: 3px; color: var(--muted); font-size: 12px;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+    .booking-actions { display: flex; align-items: center; gap: 12px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px;
+      border-radius: 20px; font-size: 11px; font-weight: 650; white-space: nowrap;
+    }
+    .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .badge.paid { color: var(--green); background: var(--green-pale); }
+    .badge.unpaid { color: var(--amber); background: var(--amber-pale); }
+    .row-actions { display: flex; gap: 3px; }
+    .icon-button {
+      display: grid; place-items: center; width: 34px; height: 34px; padding: 0;
+      color: #7d8581; background: transparent; border: 0; border-radius: 8px;
+      transition: color .16s ease, background-color .16s ease, transform .16s ease;
+    }
+    .icon-button:hover { color: var(--ink); background: #f1f3f1; }
+    .icon-button svg { width: 16px; height: 16px; }
+    .empty { padding: 58px 20px; text-align: center; }
+    .empty-icon { width: 48px; height: 48px; display: grid; place-items: center; margin: 0 auto 13px; color: var(--green); background: var(--green-pale); border-radius: 15px; }
+    .empty-icon svg { width: 22px; height: 22px; }
+    .empty h3 { margin: 0; font-size: 15px; }
+    .empty p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .list-footer { padding: 13px 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    .week-toolbar { display: flex; align-items: center; gap: 9px; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+    .week-range { flex: 1; text-align: center; font-size: 13px; font-weight: 650; }
+    .week-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; padding: 18px 20px 21px; }
+    .week-day { min-width: 0; min-height: 145px; padding: 11px 9px; background: #fafbfa; border: 1px solid var(--line); border-radius: 11px; }
+    .week-day.today { background: #f3f8f4; border-color: #b7d1c2; }
+    .week-day-heading { display: flex; flex-direction: column; gap: 1px; margin-bottom: 10px; }
+    .week-day-name { color: var(--muted); font-size: 11px; font-weight: 600; }
+    .week-day-date { font-size: 13px; font-weight: 700; }
+    .week-item {
+      display: block; width: 100%; margin-top: 7px; padding: 7px 6px; overflow: hidden;
+      text-align: left; color: var(--ink); background: var(--green-pale);
+      border: 0; border-left: 2px solid var(--green); border-radius: 6px;
+      transition: background-color .16s ease, transform .16s ease;
+    }
+    .week-item:hover { background: #dcece3; }
+    .week-item-time { color: var(--green-dark); font-size: 10px; font-weight: 680; white-space: nowrap; }
+    .week-item-client { overflow: hidden; margin-top: 2px; font-size: 11px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+    .week-item-status { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .week-empty { padding: 8px 2px; color: #a0a7a3; font-size: 11px; }
+    .client-list { padding: 0 22px; }
+    .client-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 16px 0; border-bottom: 1px solid #eef0ee; }
+    .client-row:last-child { border-bottom: 0; }
+    .package-list { padding: 0 22px; }
+    .package-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 16px 0; border-bottom: 1px solid #eef0ee; }
+    .package-row:last-child { border-bottom: 0; }
+    .package-title { font-size: 14px; font-weight: 650; }
+    .package-count { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .client-name { overflow: hidden; font-size: 14px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+    .client-package { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .client-balance { margin-top: 4px; color: #59635e; font-size: 12px; }
+    .package-warning { display: inline-flex; margin-top: 6px; padding: 3px 8px; color: #925b10; background: var(--amber-pale); border-radius: 20px; font-size: 10px; font-weight: 680; }
+    dialog {
+      width: min(460px, calc(100% - 32px)); padding: 0; border: 0; border-radius: 17px;
+      color: var(--ink); box-shadow: 0 24px 80px rgba(20, 35, 29, .22);
+    }
+    dialog::backdrop { background: rgba(26, 35, 31, .36); backdrop-filter: blur(2px); }
+    .dialog-head { display: flex; justify-content: space-between; align-items: start; padding: 23px 24px 0; }
+    .dialog-head h2 { margin: 0; font-size: 19px; letter-spacing: -.035em; }
+    .dialog-head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .close-button { margin: -4px -7px 0 0; }
+    form { padding: 20px 24px 24px; }
+    .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 13px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { color: #505955; font-size: 12px; font-weight: 630; }
+    .field input, .field textarea {
+      width: 100%; padding: 10px 11px; border: 1px solid #dfe4e0; border-radius: 9px;
+      outline: none; color: var(--ink); background: white; font-size: 13px;
+    }
+    .field input { height: 41px; }
+    .field textarea { min-height: 88px; resize: vertical; }
+    .field-hint { color: var(--muted); font-size: 11px; }
+    .paid-option { display: flex; align-items: center; gap: 9px; color: #505955; font-size: 13px; cursor: pointer; }
+    .paid-option input { width: 16px; height: 16px; accent-color: var(--green); }
+    .form-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px; }
+    .secondary-button { min-height: 41px; padding: 0 14px; color: #4f5954; background: white; border: 1px solid var(--line); border-radius: 9px; font-size: 13px; font-weight: 600; transition: background-color .16s ease, border-color .16s ease, transform .16s ease; }
+    .secondary-button:hover { background: #f7f8f7; }
+    .form-actions .button { min-height: 41px; font-size: 13px; }
+    .confirm-content { padding: 25px; }
+    .confirm-icon { display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 16px; color: #a63e3e; background: #faeded; border-radius: 13px; }
+    .confirm-icon svg { width: 20px; height: 20px; }
+    .confirm-content h2 { margin: 0; font-size: 19px; letter-spacing: -.035em; }
+    .confirm-content p { margin: 8px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+    .confirm-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 24px; }
+    .danger-button { min-height: 41px; padding: 0 14px; color: white; background: #a63e3e; border: 0; border-radius: 9px; font-size: 13px; font-weight: 650; transition: background-color .16s ease, transform .16s ease; }
+    .danger-button:hover { background: #8e3030; }
+    @keyframes panel-enter {
+      from { opacity: 0; transform: translateY(7px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .view-panel:not([hidden]) { animation: panel-enter .22s ease-out both; }
+      .button:active, .secondary-button:active, .danger-button:active, .icon-button:active { transform: scale(.97); }
+      .week-item:hover { transform: translateY(-1px); }
+    }
+    @supports (transition-behavior: allow-discrete) {
+      dialog {
+        opacity: 0;
+        transform: translateY(8px) scale(.99);
+        transition: opacity .18s ease, transform .18s ease, display .18s allow-discrete, overlay .18s allow-discrete;
+      }
+      dialog[open] { opacity: 1; transform: translateY(0) scale(1); }
+      dialog::backdrop {
+        background-color: rgba(26, 35, 31, .36);
+        transition: background-color .18s ease, display .18s allow-discrete, overlay .18s allow-discrete;
+      }
+      @starting-style {
+        dialog[open] { opacity: 0; transform: translateY(8px) scale(.99); }
+        dialog[open]::backdrop { background-color: rgba(26, 35, 31, 0); }
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+    }
+    @media (max-width: 980px) {
+      .week-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    @media (max-width: 680px) {
+      .app { padding: 22px 16px 40px; }
+      .topbar { margin-bottom: 27px; }
+      .intro { align-items: start; }
+      .intro .button { min-height: 40px; padding: 0 12px; font-size: 13px; }
+      .stats { gap: 9px; }
+      .stat { padding: 14px 13px; }
+      .stat-label { font-size: 11px; }
+      .stat-value { font-size: 23px; }
+      .stat-detail { display: none; }
+      .toolbar { align-items: start; flex-direction: column; padding: 17px; }
+      .toolbar-right { width: 100%; }
+      .search-wrap { flex: 1; }
+      .search { width: 100%; }
+      .booking-list { padding: 0 16px; }
+      .booking { grid-template-columns: 66px minmax(0, 1fr); gap: 10px; }
+      .booking-actions { grid-column: 2; justify-content: space-between; margin-top: -3px; }
+      .booking-date { font-size: 10px; }
+      .client-name { font-size: 13px; }
+      .list-footer { padding: 12px 16px; }
+      .view-tabs { padding: 0 16px; }
+      .week-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 14px 13px 16px; gap: 9px; }
+      .week-day { min-height: 120px; }
+      .week-toolbar { padding: 12px; }
+      .client-list { padding: 0 16px; }
+      .package-list { padding: 0 16px; }
+    }
+    @media (max-width: 390px) {
+      .today-label { display: none; }
+      h1 { font-size: 27px; }
+      .intro p { font-size: 13px; }
+      .fields { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M7.5 3v4M16.5 3v4M3.5 10h17M8 14h3M8 17h6"/></svg>
+        </div>
+        <div><div class="brand-name">Daybook</div><div class="brand-subtitle">Your personal schedule</div></div>
+      </div>
+      <div class="today-label" id="todayLabel"></div>
+    </header>
+
+    <section class="intro">
+      <div>
+        <h1>Your schedule</h1>
+        <p>Keep track of your clients and bookings.</p>
+      </div>
+      <button class="button" id="addButton" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span id="addButtonText">Add booking</span>
+      </button>
+    </section>
+
+    <section class="stats" aria-label="Booking overview">
+      <article class="stat"><div class="stat-label">Upcoming bookings</div><div class="stat-value"><span id="upcomingCount">0</span><span class="stat-detail">on your calendar</span></div></article>
+      <article class="stat"><div class="stat-label">Awaiting payment</div><div class="stat-value"><span id="unpaidCount">0</span><span class="stat-detail">unpaid bookings</span></div></article>
+      <article class="stat"><div class="stat-label">Paid this month</div><div class="stat-value"><span id="paidCount">0</span><span class="stat-detail">bookings paid</span></div></article>
+    </section>
+
+    <section class="content" aria-label="Bookings">
+      <nav class="view-tabs" role="tablist" aria-label="App views">
+        <button class="view-tab active" id="scheduleTab" type="button" role="tab" aria-controls="schedulePanel" aria-selected="true">Schedule</button>
+        <button class="view-tab" id="weekTab" type="button" role="tab" aria-controls="weekPanel" aria-selected="false">Week</button>
+        <button class="view-tab" id="clientsTab" type="button" role="tab" aria-controls="clientsPanel" aria-selected="false">Clients</button>
+        <button class="view-tab" id="packagesTab" type="button" role="tab" aria-controls="packagesPanel" aria-selected="false">Packages</button>
+      </nav>
+      <div id="schedulePanel" class="view-panel" role="tabpanel" aria-labelledby="scheduleTab">
+        <div class="toolbar">
+          <h2>All bookings</h2>
+          <div class="toolbar-right">
+            <label class="search-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+              <input id="searchInput" class="search" type="search" placeholder="Search clients, packages, or notes" aria-label="Search clients, packages, or notes">
+            </label>
+            <select id="filterSelect" class="filter" aria-label="Filter bookings">
+              <option value="all">All status</option>
+              <option value="unpaid">Unpaid</option>
+              <option value="paid">Paid</option>
+            </select>
+          </div>
+        </div>
+        <div class="booking-list" id="bookingList"></div>
+        <div class="list-footer" id="listFooter"></div>
+      </div>
+      <div id="weekPanel" class="view-panel" role="tabpanel" aria-labelledby="weekTab" hidden>
+        <div class="week-toolbar">
+          <button class="icon-button" id="previousWeek" type="button" aria-label="Previous week">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <button class="secondary-button" id="currentWeek" type="button">This week</button>
+          <div class="week-range" id="weekRange"></div>
+          <button class="icon-button" id="nextWeek" type="button" aria-label="Next week">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div class="week-grid" id="weekGrid"></div>
+      </div>
+      <div id="clientsPanel" class="view-panel" role="tabpanel" aria-labelledby="clientsTab" hidden>
+        <div class="toolbar"><h2>Registered clients</h2></div>
+        <div class="client-list" id="clientList"></div>
+        <div class="list-footer" id="clientFooter"></div>
+      </div>
+      <div id="packagesPanel" class="view-panel" role="tabpanel" aria-labelledby="packagesTab" hidden>
+        <div class="toolbar"><h2>Package templates</h2></div>
+        <div class="package-list" id="packageList"></div>
+        <div class="list-footer" id="packageFooter"></div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="bookingDialog">
+    <div class="dialog-head">
+      <div><h2 id="dialogTitle">Add a booking</h2><p>Save the details so nothing slips through.</p></div>
+      <button class="icon-button close-button" id="closeDialog" type="button" aria-label="Close dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <form id="bookingForm">
+      <div class="fields">
+        <div class="field full"><label for="clientInput">Client name</label><input id="clientInput" name="client" type="text" maxlength="100" list="clientOptions" placeholder="Type or choose a saved client" required><datalist id="clientOptions"></datalist><input id="clientIdInput" type="hidden"></div>
+        <div class="field full"><label for="packageInput">Package availed</label><input id="packageInput" type="text" placeholder="Choose a registered client to fill this" readonly></div>
+        <div class="field full"><label for="sessionsRemainingInput">Package balance</label><input id="sessionsRemainingInput" type="text" placeholder="No package selected" readonly></div>
+        <div class="field"><label for="dateInput">Date</label><input id="dateInput" name="date" type="date" required></div>
+        <div class="field"><label for="timeInput">Start time</label><input id="timeInput" name="time" type="time" required><span class="field-hint" id="sessionDurationHint">Automatically scheduled as a 1-hour session.</span></div>
+        <div class="field full"><label for="notesInput">Notes <span style="font-weight:400;color:#929a96">(optional)</span></label><textarea id="notesInput" name="notes" maxlength="1000" placeholder="Anything you want to remember about this booking"></textarea></div>
+        <label class="paid-option field full"><input id="paidInput" name="paid" type="checkbox"> Payment received</label>
+      </div>
+      <div class="form-actions">
+        <button class="secondary-button" id="cancelButton" type="button">Cancel</button>
+        <button class="button" id="saveButton" type="submit">Save booking</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="clientDialog">
+    <div class="dialog-head">
+      <div><h2 id="clientDialogTitle">Add a client</h2><p>Save a client and their package for future bookings.</p></div>
+      <button class="icon-button close-button" id="closeClientDialog" type="button" aria-label="Close dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <form id="clientForm">
+      <div class="fields">
+        <div class="field full"><label for="registeredNameInput">Client name</label><input id="registeredNameInput" name="name" type="text" maxlength="100" placeholder="e.g. Alex Morgan" required></div>
+        <div class="field full"><label for="clientPackageTemplate">Package template</label><select id="clientPackageTemplate"><option value="">Choose a template or enter a custom package</option></select><span class="field-hint">Templates fill the package details; changing a template won’t change existing client balances.</span></div>
+        <div class="field full"><label for="clientPackageInput">Package availed</label><input id="clientPackageInput" name="package" type="text" maxlength="100" placeholder="e.g. Monthly coaching" required></div>
+        <div class="field full"><label for="totalSessionsInput">Sessions in package</label><input id="totalSessionsInput" name="totalSessions" type="number" min="1" step="1" placeholder="e.g. 12" required><span class="field-hint">Each new booking uses one session.</span></div>
+        <label class="paid-option field full" id="renewPackageField" hidden><input id="renewPackageInput" type="checkbox"> Renew package and reset remaining sessions</label>
+      </div>
+      <div class="form-actions">
+        <button class="secondary-button" id="cancelClientButton" type="button">Cancel</button>
+        <button class="button" id="saveClientButton" type="submit">Save client</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="packageDialog">
+    <div class="dialog-head">
+      <div><h2 id="packageDialogTitle">Add a package</h2><p>Create a reusable package template.</p></div>
+      <button class="icon-button close-button" id="closePackageDialog" type="button" aria-label="Close dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <form id="packageForm">
+      <div class="fields">
+        <div class="field full"><label for="packageNameInput">Package name</label><input id="packageNameInput" name="name" type="text" maxlength="100" placeholder="e.g. 12-session package" required></div>
+        <div class="field full"><label for="packageSessionsInput">Sessions included</label><input id="packageSessionsInput" name="sessions" type="number" min="1" step="1" placeholder="e.g. 12" required></div>
+      </div>
+      <div class="form-actions">
+        <button class="secondary-button" id="cancelPackageButton" type="button">Cancel</button>
+        <button class="button" id="savePackageButton" type="submit">Save package</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="deleteDialog" aria-labelledby="deleteDialogTitle" aria-describedby="deleteDialogMessage">
+    <div class="confirm-content">
+      <div class="confirm-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg>
+      </div>
+      <h2 id="deleteDialogTitle">Delete this booking?</h2>
+      <p id="deleteDialogMessage"></p>
+      <div class="confirm-actions">
+        <button class="secondary-button" id="cancelDelete" type="button">Keep booking</button>
+        <button class="danger-button" id="confirmDelete" type="button">Delete booking</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    (() => {
+      "use strict";
+      const STORAGE_KEY = "daybook-bookings-v1";
+      const CLIENT_STORAGE_KEY = "daybook-clients-v1";
+      const PACKAGE_STORAGE_KEY = "daybook-packages-v1";
+      const APP_STATE_KEY = "daybook-state-v1";
+      const LOW_SESSION_THRESHOLD = 2;
+      const $ = (selector) => document.querySelector(selector);
+      const list = $("#bookingList");
+      const dialog = $("#bookingDialog");
+      const deleteDialog = $("#deleteDialog");
+      const clientDialog = $("#clientDialog");
+      const packageDialog = $("#packageDialog");
+      const form = $("#bookingForm");
+      const clientForm = $("#clientForm");
+      const packageForm = $("#packageForm");
+      const weekGrid = $("#weekGrid");
+      const clientList = $("#clientList");
+      const packageList = $("#packageList");
+      const initialState = loadState();
+      let bookings = initialState.bookings;
+      let clients = initialState.clients;
+      let packages = initialState.packages;
+      let editingId = null;
+      let editingClientId = null;
+      let editingPackageId = null;
+      let pendingDelete = null;
+      let weekOffset = 0;
+      let activeView = "schedule";
+
+      function loadBookings() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+          return Array.isArray(saved) ? saved.filter((item) =>
+            item && typeof item.id === "string" && typeof item.client === "string" &&
+            typeof item.date === "string" && typeof item.time === "string"
+          ).map((item) => ({
+            ...item,
+            packageName: typeof item.packageName === "string" ? item.packageName : "",
+            clientId: typeof item.clientId === "string" ? item.clientId : null,
+            packageCycleId: typeof item.packageCycleId === "string" ? item.packageCycleId : null
+          })) : [];
+        } catch (error) {
+          console.error("Could not load saved bookings.", error);
+          return [];
+        }
+      }
+
+      function loadClients() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(CLIENT_STORAGE_KEY) || "[]");
+          return Array.isArray(saved) ? saved.filter((client) =>
+            client && typeof client.id === "string" && typeof client.name === "string" &&
+            typeof client.packageName === "string"
+          ).map((client) => ({
+            ...client,
+            totalSessions: Number.isInteger(client.totalSessions) && client.totalSessions > 0 ? client.totalSessions : null,
+            sessionsRemaining: Number.isInteger(client.sessionsRemaining) && client.sessionsRemaining >= 0 ? client.sessionsRemaining : null,
+            packageCycleId: typeof client.packageCycleId === "string" ? client.packageCycleId : null
+          })) : [];
+        } catch (error) {
+          console.error("Could not load saved clients.", error);
+          return [];
+        }
+      }
+
+      function loadPackages() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(PACKAGE_STORAGE_KEY) || "[]");
+          return Array.isArray(saved) ? saved.filter((item) =>
+            item && typeof item.id === "string" && typeof item.name === "string" &&
+            Number.isInteger(item.totalSessions) && item.totalSessions > 0
+          ) : [];
+        } catch (error) {
+          console.error("Could not load saved packages.", error);
+          return [];
+        }
+      }
+
+      function loadState() {
+        try {
+          const serialized = localStorage.getItem(APP_STATE_KEY);
+          if (serialized) {
+            const state = JSON.parse(serialized);
+            if (state && Array.isArray(state.bookings) && Array.isArray(state.clients)) {
+              return {
+                bookings: state.bookings.filter((item) =>
+                  item && typeof item.id === "string" && typeof item.client === "string" &&
+                  typeof item.date === "string" && typeof item.time === "string"
+                ).map((item) => ({
+                  ...item,
+                  packageName: typeof item.packageName === "string" ? item.packageName : "",
+                  clientId: typeof item.clientId === "string" ? item.clientId : null,
+                  packageCycleId: typeof item.packageCycleId === "string" ? item.packageCycleId : null
+                })),
+                clients: state.clients.filter((client) =>
+                  client && typeof client.id === "string" && typeof client.name === "string" &&
+                  typeof client.packageName === "string"
+                ).map((client) => ({
+                  ...client,
+                  totalSessions: Number.isInteger(client.totalSessions) && client.totalSessions > 0 ? client.totalSessions : null,
+                  sessionsRemaining: Number.isInteger(client.sessionsRemaining) && client.sessionsRemaining >= 0 ? client.sessionsRemaining : null,
+                  packageCycleId: typeof client.packageCycleId === "string" ? client.packageCycleId : null
+                })),
+                packages: Array.isArray(state.packages)
+                  ? state.packages.filter((item) =>
+                    item && typeof item.id === "string" && typeof item.name === "string" &&
+                    Number.isInteger(item.totalSessions) && item.totalSessions > 0
+                  )
+                  : loadPackages()
+              };
+            }
+          }
+        } catch (error) {
+          console.error("Could not load Daybook data.", error);
+        }
+        return { bookings: loadBookings(), clients: loadClients(), packages: loadPackages() };
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(APP_STATE_KEY, JSON.stringify({ bookings, clients, packages }));
+          return true;
+        } catch (error) {
+          console.error("Could not save Daybook data.", error);
+          window.alert("Your changes could not be saved in this browser. Check available storage and try again.");
+          return false;
+        }
+      }
+
+      function saveBookings() {
+        return saveState();
+      }
+
+      function saveClients() {
+        return saveState();
+      }
+
+      function savePackages() {
+        return saveState();
+      }
+
+      function dateAtNoon(dateString) {
+        const [year, month, day] = dateString.split("-").map(Number);
+        return new Date(year, month - 1, day, 12);
+      }
+
+      function formatDate(dateString, options) {
+        return new Intl.DateTimeFormat(undefined, options).format(dateAtNoon(dateString));
+      }
+
+      function formatSessionTimes(dateString, timeString) {
+        const start = new Date(`${dateString}T${timeString}:00`);
+        const end = new Date(start.getTime() + 60 * 60 * 1000);
+        const formatter = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
+        return { start: formatter.format(start), end: formatter.format(end) };
+      }
+
+      function sessionBalanceText(client) {
+        if (!client || !Number.isInteger(client.totalSessions) || !Number.isInteger(client.sessionsRemaining)) {
+          return "Session balance not set";
+        }
+        return `${client.sessionsRemaining} of ${client.totalSessions} sessions left`;
+      }
+
+      function updateSessionDurationHint() {
+        const date = $("#dateInput").value;
+        const time = $("#timeInput").value;
+        $("#sessionDurationHint").textContent = date && time
+          ? `Ends at ${formatSessionTimes(date, time).end} · 1-hour session.`
+          : "Automatically scheduled as a 1-hour session.";
+      }
+
+      function todayForInput() {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      }
+
+      function dateToInputValue(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      }
+
+      function getWeekStart() {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        start.setDate(start.getDate() - (start.getDay() + 6) % 7 + weekOffset * 7);
+        return start;
+      }
+
+      function hasBookingOverlap(candidate) {
+        const candidateStart = new Date(`${candidate.date}T${candidate.time}:00`).getTime();
+        const candidateEnd = candidateStart + 60 * 60 * 1000;
+        return bookings.some((booking) => {
+          if (booking.id === candidate.id) return false;
+          const existingStart = new Date(`${booking.date}T${booking.time}:00`).getTime();
+          const existingEnd = existingStart + 60 * 60 * 1000;
+          return candidateStart < existingEnd && existingStart < candidateEnd;
+        });
+      }
+
+      function canUsePackageSession(client) {
+        return Number.isInteger(client.totalSessions)
+          && Number.isInteger(client.sessionsRemaining)
+          && Boolean(client.packageCycleId)
+          && client.sessionsRemaining > 0
+          && client.sessionsRemaining <= client.totalSessions;
+      }
+
+      function consumePackageSession(client) {
+        client.sessionsRemaining -= 1;
+      }
+
+      function restorePackageSession(booking, clientRecords) {
+        if (!booking.clientId || !booking.packageCycleId) return;
+        const client = clientRecords.find((item) => item.id === booking.clientId);
+        if (!client || client.packageCycleId !== booking.packageCycleId
+          || !Number.isInteger(client.totalSessions) || !Number.isInteger(client.sessionsRemaining)) return;
+        client.sessionsRemaining = Math.min(client.totalSessions, client.sessionsRemaining + 1);
+      }
+
+      function isUpcoming(booking) {
+        return new Date(`${booking.date}T${booking.time}:00`).getTime() >= Date.now();
+      }
+
+      function renderWeek() {
+        const firstDay = getWeekStart();
+        const lastDay = new Date(firstDay);
+        lastDay.setDate(lastDay.getDate() + 6);
+        $("#weekRange").textContent = `${formatDate(dateToInputValue(firstDay), { month: "short", day: "numeric" })} – ${formatDate(dateToInputValue(lastDay), { month: "short", day: "numeric", year: "numeric" })}`;
+
+        weekGrid.innerHTML = Array.from({ length: 7 }, (_, index) => {
+          const day = new Date(firstDay);
+          day.setDate(day.getDate() + index);
+          const dayKey = dateToInputValue(day);
+          const dayBookings = bookings
+            .filter((booking) => booking.date === dayKey)
+            .sort((a, b) => a.time.localeCompare(b.time));
+          const todayClass = dayKey === todayForInput() ? " today" : "";
+          const entries = dayBookings.length
+            ? dayBookings.map((booking) => {
+              const times = formatSessionTimes(booking.date, booking.time);
+              return `<button class="week-item" type="button" data-action="edit" data-id="${escapeHtml(booking.id)}" aria-label="Edit booking for ${escapeHtml(booking.client)}">
+                <div class="week-item-time">${escapeHtml(`${times.start} – ${times.end}`)}</div>
+                <div class="week-item-client">${escapeHtml(booking.client)}</div>
+                ${booking.packageName ? `<div class="week-item-status">${escapeHtml(booking.packageName)}</div>` : ""}
+                ${booking.clientId ? `<div class="week-item-status">${escapeHtml(sessionBalanceText(clients.find((client) => client.id === booking.clientId)))}</div>` : ""}
+                <div class="week-item-status">${booking.paid ? "Paid" : "Unpaid"}</div>
+              </button>`;
+            }).join("")
+            : '<div class="week-empty">No bookings</div>';
+
+          return `<section class="week-day${todayClass}">
+            <div class="week-day-heading">
+              <span class="week-day-name">${escapeHtml(formatDate(dayKey, { weekday: "short" }))}</span>
+              <span class="week-day-date">${escapeHtml(formatDate(dayKey, { month: "short", day: "numeric" }))}</span>
+            </div>
+            ${entries}
+          </section>`;
+        }).join("");
+      }
+
+      function render() {
+        const now = new Date();
+        const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+        $("#upcomingCount").textContent = bookings.filter(isUpcoming).length;
+        $("#unpaidCount").textContent = bookings.filter((booking) => !booking.paid).length;
+        $("#paidCount").textContent = bookings.filter((booking) => booking.paid && booking.date.startsWith(thisMonth)).length;
+
+        const query = $("#searchInput").value.trim().toLocaleLowerCase();
+        const status = $("#filterSelect").value;
+        const shown = bookings
+          .filter((booking) => status === "all" || (status === "paid") === Boolean(booking.paid))
+          .filter((booking) => !query || `${booking.client} ${booking.packageName || ""} ${booking.notes || ""}`.toLocaleLowerCase().includes(query))
+          .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`));
+
+        if (!shown.length) {
+          const hasFilters = Boolean(query) || status !== "all";
+          list.innerHTML = `<div class="empty">
+            <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M7.5 3v4M16.5 3v4M3.5 10h17M8 14h3"/></svg></div>
+            <h3>${hasFilters ? "No bookings found" : "Your calendar is clear"}</h3>
+            <p>${hasFilters ? "Try changing your search or filter." : "Add your first client booking to get started."}</p>
+          </div>`;
+        } else {
+          list.innerHTML = shown.map((booking) => {
+            const times = formatSessionTimes(booking.date, booking.time);
+            const details = [
+              booking.packageName && `Package: ${booking.packageName}`,
+              booking.notes
+            ].filter(Boolean).join(" · ");
+            return `
+              <article class="booking">
+                <div><div class="booking-time">${escapeHtml(`${times.start} – ${times.end}`)}</div><div class="booking-date">${escapeHtml(formatDate(booking.date, { month: "short", day: "numeric", year: "numeric" }))}</div></div>
+                <div class="booking-main"><div class="client-name">${escapeHtml(booking.client)}</div><div class="notes">${details ? escapeHtml(details) : "No notes"}</div></div>
+                <div class="booking-actions">
+                  <span class="badge ${booking.paid ? "paid" : "unpaid"}">${booking.paid ? "Paid" : "Unpaid"}</span>
+                  <div class="row-actions">
+                    <button class="icon-button" type="button" data-action="payment" data-id="${escapeHtml(booking.id)}" aria-label="${booking.paid ? "Mark unpaid" : "Mark paid"}">
+                      ${booking.paid
+                        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7 10 17l-5-5"/></svg>'
+                        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg>'}
+                    </button>
+                    <button class="icon-button" type="button" data-action="edit" data-id="${escapeHtml(booking.id)}" aria-label="Edit ${escapeHtml(booking.client)}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5 4 4M4 20l4-.8L19.2 8a2.1 2.1 0 0 0-3-3L5 16.2 4 20Z"/></svg>
+                    </button>
+                    <button class="icon-button" type="button" data-action="delete" data-id="${escapeHtml(booking.id)}" aria-label="Delete ${escapeHtml(booking.client)}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </article>`;
+          }).join("");
+        }
+        $("#listFooter").textContent = `${shown.length} ${shown.length === 1 ? "booking" : "bookings"}${shown.length !== bookings.length ? ` · ${bookings.length} total` : ""}`;
+        renderWeek();
+        renderClients();
+        renderPackages();
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (character) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        })[character]);
+      }
+
+      function openForm(booking) {
+        editingId = booking ? booking.id : null;
+        form.reset();
+        $("#dialogTitle").textContent = booking ? "Edit booking" : "Add a booking";
+        $("#saveButton").textContent = booking ? "Save changes" : "Save booking";
+        $("#clientInput").value = booking ? booking.client : "";
+        $("#clientInput").setCustomValidity("");
+        const savedClient = booking && booking.clientId && clients.find((client) => client.id === booking.clientId);
+        $("#clientIdInput").value = booking ? booking.clientId || "" : "";
+        $("#packageInput").value = booking ? booking.packageName || (savedClient && savedClient.packageName) || "" : "";
+        $("#sessionsRemainingInput").value = savedClient ? sessionBalanceText(savedClient) : "";
+        $("#dateInput").value = booking ? booking.date : todayForInput();
+        $("#timeInput").value = booking ? booking.time : "";
+        $("#timeInput").setCustomValidity("");
+        updateSessionDurationHint();
+        $("#notesInput").value = booking ? booking.notes || "" : "";
+        $("#paidInput").checked = booking ? Boolean(booking.paid) : false;
+        dialog.showModal();
+        $("#clientInput").focus();
+      }
+
+      function renderClients() {
+        $("#clientPackageTemplate").innerHTML = `<option value="">Choose a template or enter a custom package</option>`
+          + packages.slice().sort((a, b) => a.name.localeCompare(b.name))
+            .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)} · ${item.totalSessions} sessions</option>`)
+            .join("");
+        $("#clientOptions").innerHTML = clients
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((client) => `<option value="${escapeHtml(client.name)}"></option>`)
+          .join("");
+
+        const sorted = clients.slice().sort((a, b) => a.name.localeCompare(b.name));
+        if (!sorted.length) {
+          clientList.innerHTML = `<div class="empty">
+            <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M16 5.2a3.5 3.5 0 0 1 0 6.6M18 14a5 5 0 0 1 3 4.6V20"/></svg></div>
+            <h3>No clients yet</h3><p>Add a client and their package to use them in bookings.</p>
+          </div>`;
+        } else {
+          clientList.innerHTML = sorted.map((client) => {
+            const configured = Number.isInteger(client.totalSessions) && Number.isInteger(client.sessionsRemaining);
+            const remaining = configured ? client.sessionsRemaining : null;
+            const low = configured && remaining > 0 && remaining <= LOW_SESSION_THRESHOLD;
+            return `
+              <article class="client-row">
+                <div>
+                  <div class="client-name">${escapeHtml(client.name)}</div>
+                  <div class="client-package">${escapeHtml(client.packageName)}</div>
+                  <div class="client-balance">${configured ? `${remaining} of ${client.totalSessions} sessions left · ${client.totalSessions - remaining} used` : "Session balance not set · edit client to configure"}</div>
+                  ${low ? `<span class="package-warning">Almost done · ${remaining} left</span>` : ""}
+                  ${configured && remaining === 0 ? '<span class="package-warning">Package used · renew to book</span>' : ""}
+                </div>
+                <div class="row-actions">
+                  <button class="icon-button" type="button" data-action="edit-client" data-id="${escapeHtml(client.id)}" aria-label="Edit ${escapeHtml(client.name)}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5 4 4M4 20l4-.8L19.2 8a2.1 2.1 0 0 0-3-3L5 16.2 4 20Z"/></svg>
+                  </button>
+                  <button class="icon-button" type="button" data-action="delete-client" data-id="${escapeHtml(client.id)}" aria-label="Delete ${escapeHtml(client.name)}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg>
+                  </button>
+                </div>
+              </article>`;
+          }).join("");
+        }
+        $("#clientFooter").textContent = `${clients.length} ${clients.length === 1 ? "client" : "clients"}`;
+      }
+
+      function renderPackages() {
+        const sorted = packages.slice().sort((a, b) => a.name.localeCompare(b.name));
+        if (!sorted.length) {
+          packageList.innerHTML = `<div class="empty">
+            <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z"/><path d="m4.5 7.8 7.5 4.3 7.5-4.3M12 12v8.5"/></svg></div>
+            <h3>No packages yet</h3><p>Add a package template to reuse it when registering clients.</p>
+          </div>`;
+        } else {
+          packageList.innerHTML = sorted.map((item) => `
+            <article class="package-row">
+              <div><div class="package-title">${escapeHtml(item.name)}</div><div class="package-count">${item.totalSessions} sessions</div></div>
+              <div class="row-actions">
+                <button class="icon-button" type="button" data-action="edit-package" data-id="${escapeHtml(item.id)}" aria-label="Edit ${escapeHtml(item.name)}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5 4 4M4 20l4-.8L19.2 8a2.1 2.1 0 0 0-3-3L5 16.2 4 20Z"/></svg>
+                </button>
+                <button class="icon-button" type="button" data-action="delete-package" data-id="${escapeHtml(item.id)}" aria-label="Delete ${escapeHtml(item.name)}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg>
+                </button>
+              </div>
+            </article>`).join("");
+        }
+        $("#packageFooter").textContent = `${packages.length} ${packages.length === 1 ? "package" : "packages"}`;
+      }
+
+      function openClientForm(client) {
+        editingClientId = client ? client.id : null;
+        clientForm.reset();
+        $("#registeredNameInput").setCustomValidity("");
+        $("#clientPackageInput").setCustomValidity("");
+        $("#totalSessionsInput").setCustomValidity("");
+        $("#clientDialogTitle").textContent = client ? "Edit client" : "Add a client";
+        $("#saveClientButton").textContent = client ? "Save changes" : "Save client";
+        $("#registeredNameInput").value = client ? client.name : "";
+        const matchingPackage = client && packages.find((item) =>
+          item.name === client.packageName && item.totalSessions === client.totalSessions
+        );
+        $("#clientPackageTemplate").value = matchingPackage ? matchingPackage.id : "";
+        $("#clientPackageInput").value = client ? client.packageName : "";
+        $("#totalSessionsInput").value = client && Number.isInteger(client.totalSessions) ? client.totalSessions : "";
+        $("#renewPackageField").hidden = !client;
+        $("#renewPackageInput").checked = false;
+        clientDialog.showModal();
+        $("#registeredNameInput").focus();
+      }
+
+      function openPackageForm(item) {
+        editingPackageId = item ? item.id : null;
+        packageForm.reset();
+        $("#packageNameInput").setCustomValidity("");
+        $("#packageDialogTitle").textContent = item ? "Edit package" : "Add a package";
+        $("#savePackageButton").textContent = item ? "Save changes" : "Save package";
+        $("#packageNameInput").value = item ? item.name : "";
+        $("#packageSessionsInput").value = item ? item.totalSessions : "";
+        packageDialog.showModal();
+        $("#packageNameInput").focus();
+      }
+
+      function requestDelete(booking) {
+        pendingDelete = booking
+          ? { kind: "booking", id: booking.id, name: booking.client }
+          : null;
+        if (!pendingDelete) return;
+        $("#deleteDialogTitle").textContent = `Delete ${pendingDelete.kind}?`;
+        $("#deleteDialogMessage").textContent = `${pendingDelete.name} will be permanently removed. This can’t be undone.`;
+        $("#cancelDelete").textContent = `Keep ${pendingDelete.kind}`;
+        $("#confirmDelete").textContent = `Delete ${pendingDelete.kind}`;
+        deleteDialog.showModal();
+      }
+
+      function requestDeleteClient(client) {
+        pendingDelete = { kind: "client", id: client.id, name: client.name };
+        $("#deleteDialogTitle").textContent = "Delete client?";
+        $("#deleteDialogMessage").textContent = `${client.name} will be removed from your client list. Their saved bookings will remain.`;
+        $("#cancelDelete").textContent = "Keep client";
+        $("#confirmDelete").textContent = "Delete client";
+        deleteDialog.showModal();
+      }
+
+      function requestDeletePackage(item) {
+        pendingDelete = { kind: "package", id: item.id, name: item.name };
+        $("#deleteDialogTitle").textContent = "Delete package template?";
+        $("#deleteDialogMessage").textContent = `${item.name} will be removed from your templates. Existing client packages and balances will remain unchanged.`;
+        $("#cancelDelete").textContent = "Keep package";
+        $("#confirmDelete").textContent = "Delete package";
+        deleteDialog.showModal();
+      }
+
+      function setView(view) {
+        activeView = view;
+        $("#schedulePanel").hidden = view !== "schedule";
+        $("#weekPanel").hidden = view !== "week";
+        $("#clientsPanel").hidden = view !== "clients";
+        $("#packagesPanel").hidden = view !== "packages";
+        [["schedule", "scheduleTab"], ["week", "weekTab"], ["clients", "clientsTab"], ["packages", "packagesTab"]].forEach(([name, id]) => {
+          const selected = name === view;
+          const tab = $(`#${id}`);
+          tab.classList.toggle("active", selected);
+          tab.setAttribute("aria-selected", String(selected));
+        });
+        $("#addButtonText").textContent = view === "clients"
+          ? "Add client"
+          : view === "packages" ? "Add package" : "Add booking";
+      }
+
+      function packageForTypedClient() {
+        const typedName = $("#clientInput").value.trim().toLocaleLowerCase();
+        const client = clients.find((item) => item.name.toLocaleLowerCase() === typedName);
+        $("#packageInput").value = client ? client.packageName : "";
+        $("#clientIdInput").value = client ? client.id : "";
+        $("#sessionsRemainingInput").value = client ? sessionBalanceText(client) : "";
+        $("#clientInput").setCustomValidity("");
+      }
+
+      $("#addButton").addEventListener("click", () => {
+        if (activeView === "clients") openClientForm(null);
+        else if (activeView === "packages") openPackageForm(null);
+        else openForm(null);
+      });
+      $("#closeDialog").addEventListener("click", () => dialog.close());
+      $("#cancelButton").addEventListener("click", () => dialog.close());
+      $("#closeClientDialog").addEventListener("click", () => clientDialog.close());
+      $("#cancelClientButton").addEventListener("click", () => clientDialog.close());
+      $("#closePackageDialog").addEventListener("click", () => packageDialog.close());
+      $("#cancelPackageButton").addEventListener("click", () => packageDialog.close());
+      $("#clientInput").addEventListener("input", packageForTypedClient);
+      $("#clientPackageTemplate").addEventListener("change", () => {
+        const selected = packages.find((item) => item.id === $("#clientPackageTemplate").value);
+        if (!selected) return;
+        $("#clientPackageInput").value = selected.name;
+        $("#clientPackageInput").setCustomValidity("");
+        $("#totalSessionsInput").value = selected.totalSessions;
+        $("#totalSessionsInput").setCustomValidity("");
+      });
+      $("#registeredNameInput").addEventListener("input", () => $("#registeredNameInput").setCustomValidity(""));
+      $("#clientPackageInput").addEventListener("input", () => $("#clientPackageInput").setCustomValidity(""));
+      $("#totalSessionsInput").addEventListener("input", () => $("#totalSessionsInput").setCustomValidity(""));
+      clientForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!clientForm.reportValidity()) return;
+        const name = $("#registeredNameInput").value.trim();
+        const packageName = $("#clientPackageInput").value.trim();
+        if (!name || !packageName) {
+          const invalidField = !name ? $("#registeredNameInput") : $("#clientPackageInput");
+          invalidField.setCustomValidity(!name ? "Enter a client name." : "Enter the package availed.");
+          invalidField.reportValidity();
+          return;
+        }
+        const duplicate = clients.some((client) =>
+          client.id !== editingClientId && client.name.toLocaleLowerCase() === name.toLocaleLowerCase()
+        );
+        if (duplicate) {
+          $("#registeredNameInput").setCustomValidity("A client with this name is already registered.");
+          $("#registeredNameInput").reportValidity();
+          return;
+        }
+        const totalSessions = Number($("#totalSessionsInput").value);
+        if (!Number.isInteger(totalSessions) || totalSessions < 1) {
+          $("#totalSessionsInput").setCustomValidity("Enter at least one session.");
+          $("#totalSessionsInput").reportValidity();
+          return;
+        }
+        $("#totalSessionsInput").setCustomValidity("");
+        const existing = clients.find((client) => client.id === editingClientId);
+        const packageChanged = existing && (existing.packageName !== packageName || existing.totalSessions !== totalSessions);
+        const resetBalance = !existing || packageChanged || $("#renewPackageInput").checked;
+        const updated = {
+          id: editingClientId || (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`),
+          name,
+          packageName,
+          totalSessions,
+          sessionsRemaining: resetBalance || !Number.isInteger(existing.sessionsRemaining)
+            ? totalSessions
+            : existing.sessionsRemaining,
+          packageCycleId: resetBalance || !existing.packageCycleId
+            ? (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`)
+            : existing.packageCycleId,
+          createdAt: existing ? existing.createdAt : new Date().toISOString()
+        };
+        const previous = clients;
+        clients = existing
+          ? clients.map((client) => client.id === editingClientId ? updated : client)
+          : [...clients, updated];
+        if (!saveClients()) {
+          clients = previous;
+          return;
+        }
+        clientDialog.close();
+        render();
+      });
+      $("#packageNameInput").addEventListener("input", () => $("#packageNameInput").setCustomValidity(""));
+      packageForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!packageForm.reportValidity()) return;
+        const name = $("#packageNameInput").value.trim();
+        const totalSessions = Number($("#packageSessionsInput").value);
+        if (!name) {
+          $("#packageNameInput").setCustomValidity("Enter a package name.");
+          $("#packageNameInput").reportValidity();
+          return;
+        }
+        if (!Number.isInteger(totalSessions) || totalSessions < 1) return;
+        const duplicate = packages.some((item) =>
+          item.id !== editingPackageId && item.name.toLocaleLowerCase() === name.toLocaleLowerCase()
+        );
+        if (duplicate) {
+          $("#packageNameInput").setCustomValidity("A package with this name is already registered.");
+          $("#packageNameInput").reportValidity();
+          return;
+        }
+        const previous = packages;
+        const existing = packages.find((item) => item.id === editingPackageId);
+        const updated = {
+          id: editingPackageId || (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`),
+          name,
+          totalSessions
+        };
+        packages = existing
+          ? packages.map((item) => item.id === editingPackageId ? updated : item)
+          : [...packages, updated];
+        if (!savePackages()) {
+          packages = previous;
+          return;
+        }
+        packageDialog.close();
+        render();
+      });
+      $("#cancelDelete").addEventListener("click", () => deleteDialog.close());
+      $("#confirmDelete").addEventListener("click", () => {
+        if (!pendingDelete) return;
+        if (pendingDelete.kind === "booking") {
+          const previousBookings = bookings;
+          const previousClients = clients.map((client) => ({ ...client }));
+          const deleted = bookings.find((booking) => booking.id === pendingDelete.id);
+          bookings = bookings.filter((booking) => booking.id !== pendingDelete.id);
+          if (deleted) restorePackageSession(deleted, clients);
+          if (!saveBookings()) {
+            bookings = previousBookings;
+            clients = previousClients;
+            return;
+          }
+        } else if (pendingDelete.kind === "client") {
+          const previous = clients;
+          clients = clients.filter((client) => client.id !== pendingDelete.id);
+          if (!saveClients()) {
+            clients = previous;
+            return;
+          }
+        } else {
+          const previous = packages;
+          packages = packages.filter((item) => item.id !== pendingDelete.id);
+          if (!savePackages()) {
+            packages = previous;
+            return;
+          }
+        }
+        deleteDialog.close();
+        render();
+      });
+      deleteDialog.addEventListener("click", (event) => {
+        if (event.target === deleteDialog) deleteDialog.close();
+      });
+      deleteDialog.addEventListener("close", () => { pendingDelete = null; });
+      dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) dialog.close();
+      });
+      $("#searchInput").addEventListener("input", render);
+      $("#filterSelect").addEventListener("change", render);
+      function onBookingTimeChanged() {
+        $("#timeInput").setCustomValidity("");
+        updateSessionDurationHint();
+      }
+      $("#dateInput").addEventListener("input", onBookingTimeChanged);
+      $("#timeInput").addEventListener("input", onBookingTimeChanged);
+
+      $("#scheduleTab").addEventListener("click", () => setView("schedule"));
+      $("#weekTab").addEventListener("click", () => setView("week"));
+      $("#clientsTab").addEventListener("click", () => setView("clients"));
+      $("#packagesTab").addEventListener("click", () => setView("packages"));
+      $("#previousWeek").addEventListener("click", () => { weekOffset -= 1; renderWeek(); });
+      $("#nextWeek").addEventListener("click", () => { weekOffset += 1; renderWeek(); });
+      $("#currentWeek").addEventListener("click", () => { weekOffset = 0; renderWeek(); });
+      weekGrid.addEventListener("click", (event) => {
+        const button = event.target.closest('button[data-action="edit"]');
+        if (!button) return;
+        const booking = bookings.find((item) => item.id === button.dataset.id);
+        if (booking) openForm(booking);
+      });
+      clientList.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+        const client = clients.find((item) => item.id === button.dataset.id);
+        if (!client) return;
+        if (button.dataset.action === "edit-client") openClientForm(client);
+        if (button.dataset.action === "delete-client") requestDeleteClient(client);
+      });
+      packageList.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+        const item = packages.find((entry) => entry.id === button.dataset.id);
+        if (!item) return;
+        if (button.dataset.action === "edit-package") openPackageForm(item);
+        if (button.dataset.action === "delete-package") requestDeletePackage(item);
+      });
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        const data = new FormData(form);
+        const existing = bookings.find((booking) => booking.id === editingId);
+        const clientName = String(data.get("client")).trim();
+        const selectedClient = clients.find((client) =>
+          client.id === $("#clientIdInput").value
+          && client.name.toLocaleLowerCase() === clientName.toLocaleLowerCase()
+        );
+        const clientId = selectedClient ? selectedClient.id : null;
+        const keepsClient = Boolean(existing && existing.clientId === clientId);
+        if (selectedClient && !keepsClient && !canUsePackageSession(selectedClient)) {
+          const configured = Number.isInteger(selectedClient.totalSessions)
+            && Number.isInteger(selectedClient.sessionsRemaining)
+            && Boolean(selectedClient.packageCycleId);
+          $("#clientInput").setCustomValidity(configured
+            ? "No sessions remain. Renew this client’s package before booking."
+            : "Set this client’s package session count before booking.");
+          $("#clientInput").reportValidity();
+          return;
+        }
+        const updated = {
+          id: editingId || (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`),
+          client: clientName,
+          date: String(data.get("date")),
+          time: String(data.get("time")),
+          notes: String(data.get("notes") || "").trim(),
+          packageName: $("#packageInput").value.trim(),
+          clientId,
+          packageCycleId: selectedClient
+            ? (keepsClient ? existing.packageCycleId : selectedClient.packageCycleId)
+            : null,
+          paid: $("#paidInput").checked,
+          createdAt: existing ? existing.createdAt : new Date().toISOString()
+        };
+        if (!updated.client) {
+          $("#clientInput").setCustomValidity("Enter a client name.");
+          $("#clientInput").reportValidity();
+          $("#clientInput").setCustomValidity("");
+          return;
+        }
+        if (hasBookingOverlap(updated)) {
+          $("#timeInput").setCustomValidity("This time overlaps another 1-hour booking. Choose a different time.");
+          $("#timeInput").reportValidity();
+          return;
+        }
+        const previous = bookings;
+        const previousClients = clients.map((client) => ({ ...client }));
+        if (existing && existing.clientId && existing.clientId !== clientId) {
+          restorePackageSession(existing, clients);
+        }
+        if (selectedClient && !keepsClient) consumePackageSession(selectedClient);
+        bookings = existing
+          ? bookings.map((booking) => booking.id === editingId ? updated : booking)
+          : [...bookings, updated];
+        if (!saveBookings()) {
+          bookings = previous;
+          clients = previousClients;
+          return;
+        }
+        dialog.close();
+        render();
+      });
+
+      list.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+        const booking = bookings.find((item) => item.id === button.dataset.id);
+        if (!booking) return;
+        if (button.dataset.action === "edit") openForm(booking);
+        if (button.dataset.action === "payment") {
+          const previous = bookings;
+          bookings = bookings.map((item) => item.id === booking.id ? { ...item, paid: !item.paid } : item);
+          if (!saveBookings()) bookings = previous;
+          render();
+        }
+        if (button.dataset.action === "delete") requestDelete(booking);
+      });
+
+      $("#todayLabel").textContent = new Intl.DateTimeFormat(undefined, {
+        weekday: "long", month: "long", day: "numeric"
+      }).format(new Date());
+      render();
+    })();
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch((error) => {
+          console.error("Could not enable offline support.", error);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

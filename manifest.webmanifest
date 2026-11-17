@@ -1,0 +1,22 @@
+{
+  "name": "Daybook — Schedule Manager",
+  "short_name": "Daybook",
+  "description": "A private, offline schedule manager for client bookings and packages.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f5",
+  "theme_color": "#f6f7f5",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
