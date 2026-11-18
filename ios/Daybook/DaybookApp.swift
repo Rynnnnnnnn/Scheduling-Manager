@@ -3,6 +3,17 @@ import SwiftUI
 
 @main
 struct DaybookApp: App {
+    @AppStorage("daybook.fontScale") private var fontScale: Double = 1.15
+
+    private var contentSizeCategory: ContentSizeCategory {
+        switch fontScale {
+        case ..<1.08: return .large
+        case ..<1.22: return .xLarge
+        case ..<1.40: return .xxLarge
+        default: return .xxxLarge
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             TabView {
@@ -30,7 +41,13 @@ struct DaybookApp: App {
                     .tabItem {
                         Label("Logs", systemImage: "clock.arrow.circlepath")
                     }
+
+                SettingsView()
+                    .tabItem {
+                        Label("Settings", systemImage: "gearshape")
+                    }
             }
+            .environment(\.sizeCategory, contentSizeCategory)
         }
         .modelContainer(for: [Booking.self, Client.self, ServicePackage.self])
     }
