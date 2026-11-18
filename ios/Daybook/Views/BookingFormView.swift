@@ -6,15 +6,17 @@ struct BookingFormView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var bookings: [Booking]
     @Query(sort: \Client.name, order: .forward) private var clients: [Client]
+    @Query(sort: \ServicePackage.name, order: .forward) private var packages: [ServicePackage]
 
     private let booking: Booking?
 
     @State private var clientName: String
     @State private var clientID: UUID?
     @State private var packageName: String
+    @State private var selectedPackageID: UUID?
+    @State private var packageBalance: Int
     @State private var startDate: Date
     @State private var notes: String
-    @State private var isPaid: Bool
     @State private var errorMessage: String?
 
     private var matchingClients: [Client] {
@@ -24,13 +26,26 @@ struct BookingFormView: View {
     }
 
     private var selectedClient: Client? {
-        guard let clientID else { return nil }
-        return clients.first { $0.id == clientID }
+        let query = clientName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return nil }
+        return clients.first { $0.name.localizedCaseInsensitiveCompare(query) == .orderedSame }
     }
 
-    private var sessionBalanceLabel: String {
-        guard let remaining = selectedClient?.sessionsRemaining else { return "Not tracked" }
-        return String(remaining)
+    private var isNewClientName: Bool {
+        !clientName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && selectedClient == nil
+    }
+
+    private func selectPackage(named name: String) {
+        let package = packages.first { $0.name == name }
+        selectedPackageID = package?.id
+        packageName = name
+        packageBalance = package?.totalSessions ?? 10
+    }
+
+    private func clearPackage() {
+        selectedPackageID = nil
+        packageName = ""
+        packageBalance = 10
     }
 
     init(booking: Booking? = nil) {
@@ -38,9 +53,10 @@ struct BookingFormView: View {
         _clientName = State(initialValue: booking?.clientName ?? "")
         _clientID = State(initialValue: booking?.clientID)
         _packageName = State(initialValue: booking?.packageName ?? "")
+        _selectedPackageID = State(initialValue: nil)
+        _packageBalance = State(initialValue: booking?.packageBalance ?? 10)
         _startDate = State(initialValue: booking?.startDate ?? .now)
         _notes = State(initialValue: booking?.notes ?? "")
-        _isPaid = State(initialValue: booking?.isPaid ?? false)
     }
 
     var body: some View {
@@ -56,7 +72,11 @@ struct BookingFormView: View {
                                 $0.name.localizedCaseInsensitiveCompare(normalizedName) == .orderedSame
                             }
                             clientID = client?.id
-                            packageName = client?.packageName ?? ""
+                            if let client {
+                                selectPackage(named: client.packageName)
+                            } else {
+                                clearPackage()
+                            }
                         }
 
                     if clients.isEmpty {
@@ -73,7 +93,7 @@ struct BookingFormView: View {
                                 Button("\(client.name) — \(client.packageName)") {
                                     clientName = client.name
                                     clientID = client.id
-                                    packageName = client.packageName
+                                    selectPackage(named: client.packageName)
                                 }
                             }
                         } label: {
@@ -81,8 +101,55 @@ struct BookingFormView: View {
                         }
                     }
 
-                    LabeledContent("Package availed", value: packageName.isEmpty ? "Not selected" : packageName)
-                    LabeledContent("Sessions remaining", value: sessionBalanceLabel)
+                    if isNewClientName {
+                        Text("This name will be added to Clients when you save.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section("Package") {
+                    Picker("Package availed", selection: Binding(
+                        get: { selectedPackageID },
+                        set: { newID in
+                            if let newID,
+                               let package = packages.first(where: { $0.id == newID }) {
+                                selectedPackageID = newID
+                                packageName = package.name
+                                packageBalance = package.totalSessions
+                            } else {
+                                clearPackage()
+                            }
+                        }
+                    )) {
+                        Text("No package selected").tag(Optional<UUID>.none)
+                        ForEach(packages) { package in
+                            Text("\(package.name) · \(package.totalSessions) sessions")
+                                .tag(Optional(package.id))
+                        }
+                    }
+
+                    HStack {
+                        Text("Package balance")
+                        Spacer()
+                        TextField("10", value: $packageBalance, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                            .onChange(of: packageBalance) { _, newValue in
+                                if newValue < 0 { packageBalance = 0 }
+                            }
+                    }
+
+                    if let selectedClient {
+                        LabeledContent(
+                            "Package payment",
+                            value: selectedClient.packagePaid ? "Paid" : "Awaiting payment"
+                        )
+                        Text("Payment is managed once on the client’s package.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Section("Date and time") {
@@ -102,9 +169,10 @@ struct BookingFormView: View {
                     TextEditor(text: $notes)
                         .frame(minHeight: 100)
                 }
-
-                Section("Payment") {
-                    Toggle("Payment received", isOn: $isPaid)
+            }
+            .onAppear {
+                if selectedPackageID == nil {
+                    selectedPackageID = packages.first { $0.name == packageName }?.id
                 }
             }
             .navigationTitle(booking == nil ? "New booking" : "Edit booking")
@@ -140,13 +208,36 @@ struct BookingFormView: View {
             return
         }
 
-        let targetClient = clients.first {
-            $0.id == clientID && $0.name.localizedCaseInsensitiveCompare(cleanedName) == .orderedSame
+        let cleanedPackage = packageName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanedBalance = max(0, packageBalance)
+        let bookingPackageName = cleanedPackage.isEmpty ? "Custom package" : cleanedPackage
+
+        let matchedClient = clients.first {
+            $0.name.localizedCaseInsensitiveCompare(cleanedName) == .orderedSame
         }
+        let newClient: Client?
+        let targetClient: Client?
+        if let matchedClient {
+            newClient = nil
+            targetClient = matchedClient
+        } else {
+            let client = Client(
+                name: cleanedName,
+                packageName: bookingPackageName,
+                totalSessions: max(1, cleanedBalance),
+                sessionsRemaining: max(0, cleanedBalance - 1),
+                packageCycleID: UUID(),
+                packagePaid: false
+            )
+            modelContext.insert(client)
+            newClient = client
+            targetClient = client
+        }
+        let isNewClient = newClient != nil
         let targetClientID = targetClient?.id
         let changesClient = booking?.clientID != targetClientID
 
-        if let targetClient, changesClient {
+        if let targetClient, !isNewClient, changesClient {
             guard let remaining = targetClient.sessionsRemaining,
                   let total = targetClient.totalSessions,
                   targetClient.packageCycleID != nil,
@@ -160,13 +251,12 @@ struct BookingFormView: View {
             }
         }
 
-        let cleanedPackage = packageName.trimmingCharacters(in: .whitespacesAndNewlines)
-
         if let booking {
             let oldValues = (
                 booking.clientName,
                 booking.clientID,
                 booking.packageName,
+                booking.packageBalance,
                 booking.packageCycleID,
                 booking.startDate,
                 booking.notes,
@@ -176,20 +266,21 @@ struct BookingFormView: View {
 
             if changesClient {
                 restoreSession(for: booking)
-                if let targetClient {
+                if let targetClient, !isNewClient {
                     targetClient.sessionsRemaining = (targetClient.sessionsRemaining ?? 0) - 1
                 }
             }
 
             booking.clientName = cleanedName
             booking.clientID = targetClientID
-            booking.packageName = cleanedPackage.isEmpty ? nil : cleanedPackage
+            booking.packageName = bookingPackageName
+            booking.packageBalance = cleanedBalance
             booking.packageCycleID = targetClientID == oldValues.1
-                ? oldValues.3
+                ? oldValues.4
                 : targetClient?.packageCycleID
             booking.startDate = startDate
             booking.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
-            booking.isPaid = isPaid
+            booking.isPaid = targetClient?.packagePaid ?? oldValues.7
 
             do {
                 try modelContext.save()
@@ -198,14 +289,18 @@ struct BookingFormView: View {
                 booking.clientName = oldValues.0
                 booking.clientID = oldValues.1
                 booking.packageName = oldValues.2
-                booking.packageCycleID = oldValues.3
-                booking.startDate = oldValues.4
-                booking.notes = oldValues.5
-                booking.isPaid = oldValues.6
+                booking.packageBalance = oldValues.3
+                booking.packageCycleID = oldValues.4
+                booking.startDate = oldValues.5
+                booking.notes = oldValues.6
+                booking.isPaid = oldValues.7
                 for (id, remaining) in previousBalances {
                     if let client = clients.first(where: { $0.id == id }) {
                         client.sessionsRemaining = remaining
                     }
+                }
+                if let newClient {
+                    modelContext.delete(newClient)
                 }
                 errorMessage = error.localizedDescription
             }
@@ -213,14 +308,15 @@ struct BookingFormView: View {
             let newBooking = Booking(
                 clientName: cleanedName,
                 clientID: targetClientID,
-                packageName: cleanedPackage.isEmpty ? nil : cleanedPackage,
+                packageName: bookingPackageName,
+                packageBalance: cleanedBalance,
                 packageCycleID: targetClient?.packageCycleID,
                 startDate: startDate,
                 notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
-                isPaid: isPaid
+                isPaid: targetClient?.packagePaid ?? false
             )
             let previousRemaining = targetClient?.sessionsRemaining
-            if let targetClient {
+            if let targetClient, !isNewClient {
                 targetClient.sessionsRemaining = (targetClient.sessionsRemaining ?? 0) - 1
             }
             modelContext.insert(newBooking)
@@ -230,7 +326,9 @@ struct BookingFormView: View {
                 dismiss()
             } catch {
                 modelContext.delete(newBooking)
-                if let targetClient {
+                if let newClient {
+                    modelContext.delete(newClient)
+                } else if let targetClient {
                     targetClient.sessionsRemaining = previousRemaining
                 }
                 errorMessage = error.localizedDescription

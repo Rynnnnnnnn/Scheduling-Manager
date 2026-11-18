@@ -19,6 +19,7 @@
 		A1000000000000000000000A /* ServicePackage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* ServicePackage.swift */; };
 		A1000000000000000000000B /* PackagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* PackagesView.swift */; };
 		A1000000000000000000000C /* PackageFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* PackageFormView.swift */; };
+		A1000000000000000000000D /* LogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* LogsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,7 @@
 		B10000000000000000000011 /* ServicePackage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServicePackage.swift; sourceTree = "<group>"; };
 		B10000000000000000000012 /* PackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackagesView.swift; sourceTree = "<group>"; };
 		B10000000000000000000013 /* PackageFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackageFormView.swift; sourceTree = "<group>"; };
+		B10000000000000000000014 /* LogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -95,6 +97,7 @@
 				B10000000000000000000010 /* ClientFormView.swift */,
 				B10000000000000000000012 /* PackagesView.swift */,
 				B10000000000000000000013 /* PackageFormView.swift */,
+				B10000000000000000000014 /* LogsView.swift */,
 				B10000000000000000000007 /* WeekCalendarView.swift */,
 				D10000000000000000000006 /* Components */,
 			);
@@ -186,6 +189,7 @@
 				A1000000000000000000000A /* ServicePackage.swift in Sources */,
 				A1000000000000000000000B /* PackagesView.swift in Sources */,
 				A1000000000000000000000C /* PackageFormView.swift in Sources */,
+				A1000000000000000000000D /* LogsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

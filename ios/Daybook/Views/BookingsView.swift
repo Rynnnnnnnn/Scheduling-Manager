@@ -33,9 +33,9 @@ struct BookingsView: View {
             case .all:
                 matchesPayment = true
             case .paid:
-                matchesPayment = booking.isPaid
+                matchesPayment = PackagePayment.isPaid(for: booking, clients: clients)
             case .unpaid:
-                matchesPayment = !booking.isPaid
+                matchesPayment = !PackagePayment.isPaid(for: booking, clients: clients)
             }
 
             let matchesSearch = searchText.isEmpty
@@ -52,12 +52,13 @@ struct BookingsView: View {
     }
 
     private var unpaidCount: Int {
-        bookings.filter { !$0.isPaid }.count
+        clients.filter { !$0.packagePaid }.count
     }
 
     private var paidThisMonthCount: Int {
-        bookings.filter {
-            $0.isPaid && Calendar.current.isDate($0.startDate, equalTo: .now, toGranularity: .month)
+        clients.filter { client in
+            guard client.packagePaid, let paidAt = client.packagePaidAt else { return false }
+            return Calendar.current.isDate(paidAt, equalTo: .now, toGranularity: .month)
         }.count
     }
 
@@ -95,12 +96,10 @@ struct BookingsView: View {
                         ForEach(visibleBookings) { booking in
                             BookingRow(
                                 booking: booking,
+                                isPackagePaid: PackagePayment.isPaid(for: booking, clients: clients),
                                 onEdit: {
                                     selectedBooking = booking
                                     isShowingForm = true
-                                },
-                                onTogglePayment: {
-                                    togglePayment(for: booking)
                                 }
                             )
                             .swipeActions(edge: .trailing) {
@@ -172,19 +171,6 @@ struct BookingsView: View {
             StatCard(title: "Upcoming", value: upcomingCount, symbol: "calendar")
             StatCard(title: "Unpaid", value: unpaidCount, symbol: "creditcard")
             StatCard(title: "Paid this month", value: paidThisMonthCount, symbol: "checkmark.circle")
-        }
-    }
-
-    private func togglePayment(for booking: Booking) {
-        let previousValue = booking.isPaid
-        withAnimation(smoothAnimation) {
-            booking.isPaid.toggle()
-        }
-        do {
-            try modelContext.save()
-        } catch {
-            booking.isPaid = previousValue
-            errorMessage = error.localizedDescription
         }
     }
 

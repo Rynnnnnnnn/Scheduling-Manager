@@ -1,3 +1,4 @@
+import Combine
 import SwiftData
 import SwiftUI
 
@@ -12,6 +13,7 @@ struct WeekCalendarView: View {
     @State private var selectedBooking: Booking?
     @State private var bookingToDelete: Booking?
     @State private var errorMessage: String?
+    @State private var currentTime = Date()
 
     private var smoothAnimation: Animation? {
         reduceMotion ? nil : .snappy(duration: 0.24)
@@ -52,13 +54,12 @@ struct WeekCalendarView: View {
                             ForEach(dayBookings) { booking in
                                 BookingRow(
                                     booking: booking,
+                                    isPackagePaid: PackagePayment.isPaid(for: booking, clients: clients),
                                     onEdit: {
                                         selectedBooking = booking
                                         isShowingForm = true
                                     },
-                                    onTogglePayment: {
-                                        togglePayment(for: booking)
-                                    }
+                                    isSessionOver: booking.startDate.addingTimeInterval(60 * 60) <= currentTime
                                 )
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
@@ -87,6 +88,8 @@ struct WeekCalendarView: View {
             }
             .listStyle(.insetGrouped)
             .animation(smoothAnimation, value: weekOffset)
+            .onAppear { currentTime = Date() }
+            .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { currentTime = $0 }
             .navigationTitle("Week")
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -159,19 +162,6 @@ struct WeekCalendarView: View {
             } message: {
                 Text(errorMessage ?? "Please try again.")
             }
-        }
-    }
-
-    private func togglePayment(for booking: Booking) {
-        let previousValue = booking.isPaid
-        withAnimation(smoothAnimation) {
-            booking.isPaid.toggle()
-        }
-        do {
-            try modelContext.save()
-        } catch {
-            booking.isPaid = previousValue
-            errorMessage = error.localizedDescription
         }
     }
 

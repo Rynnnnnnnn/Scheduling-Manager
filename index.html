@@ -110,12 +110,12 @@
       -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(145%);
     }
     .view-tabs {
-      display: flex; gap: 20px; padding: 0 22px;
+      display: flex; gap: 20px; padding: 0 22px; overflow-x: auto;
       background: linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,.12));
       border-bottom: 1px solid rgba(72,105,88,.10);
     }
     .view-tab {
-      position: relative;
+      position: relative; flex: 0 0 auto;
       padding: 14px 2px 12px; color: var(--muted); background: transparent;
       border: 0; border-bottom: 2px solid transparent; border-radius: 8px 8px 0 0;
       font-size: 13px; font-weight: 620;
@@ -208,9 +208,16 @@
       transition: background-color .16s ease, transform .16s ease;
     }
     .week-item:hover { background: rgba(213,236,222,.95); }
+    .week-item.overdue {
+      background: linear-gradient(135deg, rgba(252,231,231,.94), rgba(255,242,242,.86));
+      border-color: rgba(255,255,255,.8); border-left-color: #b34c4c;
+    }
+    .week-item.overdue:hover { background: rgba(250,222,222,.97); }
     .week-item-time { color: var(--green-dark); font-size: 10px; font-weight: 680; white-space: nowrap; }
+    .week-item.overdue .week-item-time { color: #a63e3e; }
     .week-item-client { overflow: hidden; margin-top: 2px; font-size: 11px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
     .week-item-status { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .week-item-status.overdue-status { color: #a63e3e; font-weight: 700; }
     .week-empty { padding: 8px 2px; color: #a0a7a3; font-size: 11px; }
     .client-list { display: grid; gap: 10px; padding: 18px 18px 22px; }
     .client-row {
@@ -232,6 +239,35 @@
     .client-package { margin-top: 3px; color: var(--muted); font-size: 12px; }
     .client-balance { margin-top: 4px; color: #59635e; font-size: 12px; }
     .package-warning { display: inline-flex; margin-top: 6px; padding: 3px 8px; color: #925b10; background: var(--amber-pale); border-radius: 20px; font-size: 10px; font-weight: 680; }
+    .log-list { display: grid; gap: 10px; padding: 18px 18px 22px; }
+    .log-client {
+      overflow: hidden;
+      background: linear-gradient(135deg, rgba(255,255,255,.78), rgba(255,255,255,.54));
+      border: 1px solid rgba(255,255,255,.85); border-radius: 13px;
+      box-shadow: 0 6px 18px rgba(33,64,51,.05), inset 0 1px 0 rgba(255,255,255,.9);
+    }
+    .log-client > summary {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px;
+      padding: 14px 16px; cursor: pointer; list-style: none;
+    }
+    .log-client > summary::-webkit-details-marker { display: none; }
+    .log-client > summary::after { content: "⌄"; color: var(--muted); font-size: 14px; transition: transform .16s ease; }
+    .log-client[open] > summary::after { transform: rotate(180deg); }
+    .log-client-name { font-size: 14px; font-weight: 650; }
+    .log-client-summary { color: var(--muted); font-size: 12px; }
+    .log-client-body { padding: 0 16px 15px; border-top: 1px solid rgba(72,105,88,.10); }
+    .log-client-package { padding-top: 11px; color: #59635e; font-size: 12px; }
+    .log-entries { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+    .log-entry {
+      padding: 11px 12px; background: rgba(255,255,255,.7);
+      border: 1px solid rgba(72,105,88,.10); border-left: 2px solid var(--green); border-radius: 9px;
+    }
+    .log-entry-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .log-session { font-size: 12px; font-weight: 700; }
+    .log-entry-date { margin-top: 4px; font-size: 12px; font-weight: 600; }
+    .log-entry-time { margin-top: 2px; color: var(--green-dark); font-size: 11px; font-weight: 620; }
+    .log-entry-meta { margin-top: 3px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+    .log-empty { padding: 12px 2px; color: var(--muted); font-size: 12px; }
     dialog {
       width: min(460px, calc(100% - 32px)); padding: 0; border: 1px solid rgba(255,255,255,.8); border-radius: 17px;
       color: var(--ink);
@@ -367,7 +403,7 @@
       .search, .filter { background-color: #fff; border-color: var(--line); box-shadow: none; }
       .field select { background-color: #fff; box-shadow: none; }
 
-      .booking-list, .client-list, .package-list { gap: 9px; padding: 13px 12px 16px; }
+      .booking-list, .client-list, .package-list, .log-list { gap: 9px; padding: 13px 12px 16px; }
       .booking, .client-row, .package-row {
         padding: 13px; background: rgba(255,255,255,.96);
         border-color: rgba(72,105,88,.10); box-shadow: none;
@@ -383,6 +419,7 @@
       .week-day { min-height: 120px; background: rgba(255,255,255,.9); border-color: var(--line); box-shadow: none; }
       .week-day.today { background: #ebf5ee; border-color: #b7d1c2; }
       .week-item { background: #eaf5ee; border-color: var(--line); }
+      .week-item.overdue { background: #fbe9e9; border-color: var(--line); border-left-color: #b34c4c; }
       .week-toolbar { padding: 12px; background: rgba(255,255,255,.7); }
       dialog::backdrop { backdrop-filter: none; }
     }
@@ -420,8 +457,8 @@
 
     <section class="stats" aria-label="Booking overview">
       <article class="stat"><div class="stat-label">Upcoming bookings</div><div class="stat-value"><span id="upcomingCount">0</span><span class="stat-detail">on your calendar</span></div></article>
-      <article class="stat"><div class="stat-label">Awaiting payment</div><div class="stat-value"><span id="unpaidCount">0</span><span class="stat-detail">unpaid bookings</span></div></article>
-      <article class="stat"><div class="stat-label">Paid this month</div><div class="stat-value"><span id="paidCount">0</span><span class="stat-detail">bookings paid</span></div></article>
+      <article class="stat"><div class="stat-label">Awaiting payment</div><div class="stat-value"><span id="unpaidCount">0</span><span class="stat-detail">packages awaiting payment</span></div></article>
+      <article class="stat"><div class="stat-label">Paid this month</div><div class="stat-value"><span id="paidCount">0</span><span class="stat-detail">packages paid</span></div></article>
     </section>
 
     <section class="content" aria-label="Bookings">
@@ -430,6 +467,7 @@
         <button class="view-tab" id="weekTab" type="button" role="tab" aria-controls="weekPanel" aria-selected="false">Week</button>
         <button class="view-tab" id="clientsTab" type="button" role="tab" aria-controls="clientsPanel" aria-selected="false">Clients</button>
         <button class="view-tab" id="packagesTab" type="button" role="tab" aria-controls="packagesPanel" aria-selected="false">Packages</button>
+        <button class="view-tab" id="logsTab" type="button" role="tab" aria-controls="logsPanel" aria-selected="false">Logs</button>
       </nav>
       <div id="schedulePanel" class="view-panel" role="tabpanel" aria-labelledby="scheduleTab">
         <div class="toolbar">
@@ -472,6 +510,11 @@
         <div class="package-list" id="packageList"></div>
         <div class="list-footer" id="packageFooter"></div>
       </div>
+      <div id="logsPanel" class="view-panel" role="tabpanel" aria-labelledby="logsTab" hidden>
+        <div class="toolbar"><h2>Client session logs</h2></div>
+        <div class="log-list" id="logList"></div>
+        <div class="list-footer" id="logFooter"></div>
+      </div>
     </section>
   </main>
 
@@ -484,13 +527,12 @@
     </div>
     <form id="bookingForm">
       <div class="fields">
-        <div class="field full"><label for="clientInput">Client name</label><input id="clientInput" name="client" type="text" maxlength="100" list="clientOptions" placeholder="Type or choose a saved client" required><datalist id="clientOptions"></datalist><input id="clientIdInput" type="hidden"></div>
-        <div class="field full"><label for="packageInput">Package availed</label><input id="packageInput" type="text" placeholder="Choose a registered client to fill this" readonly></div>
-        <div class="field full"><label for="sessionsRemainingInput">Package balance</label><input id="sessionsRemainingInput" type="text" placeholder="No package selected" readonly></div>
+        <div class="field full"><label for="clientInput">Client name</label><input id="clientInput" name="client" type="text" maxlength="100" list="clientOptions" placeholder="Type or choose a saved client" required><datalist id="clientOptions"></datalist><input id="clientIdInput" type="hidden"><span class="field-hint">New names are added to Clients automatically when you save.</span></div>
+        <div class="field full"><label for="packageInput">Package availed</label><select id="packageInput"><option value="">No package selected</option></select></div>
+        <div class="field full"><label for="sessionsRemainingInput">Package balance</label><input id="sessionsRemainingInput" name="packageBalance" type="number" min="0" step="1" inputmode="numeric" value="10"><span class="field-hint">Filled from the selected package — edit the number; defaults to 10.</span></div>
         <div class="field"><label for="dateInput">Date</label><input id="dateInput" name="date" type="date" required></div>
         <div class="field"><label for="timeInput">Start time</label><input id="timeInput" name="time" type="time" required><span class="field-hint" id="sessionDurationHint">Automatically scheduled as a 1-hour session.</span></div>
         <div class="field full"><label for="notesInput">Notes <span style="font-weight:400;color:#929a96">(optional)</span></label><textarea id="notesInput" name="notes" maxlength="1000" placeholder="Anything you want to remember about this booking"></textarea></div>
-        <label class="paid-option field full"><input id="paidInput" name="paid" type="checkbox"> Payment received</label>
       </div>
       <div class="form-actions">
         <button class="secondary-button" id="cancelButton" type="button">Cancel</button>
@@ -512,6 +554,7 @@
         <div class="field full"><label for="clientPackageTemplate">Package template</label><select id="clientPackageTemplate"><option value="">Choose a template or enter a custom package</option></select><span class="field-hint">Templates fill the package details; changing a template won’t change existing client balances.</span></div>
         <div class="field full"><label for="clientPackageInput">Package availed</label><input id="clientPackageInput" name="package" type="text" maxlength="100" placeholder="e.g. Monthly coaching" required></div>
         <div class="field full"><label for="totalSessionsInput">Sessions in package</label><input id="totalSessionsInput" name="totalSessions" type="number" min="1" step="1" placeholder="e.g. 12" required><span class="field-hint">Each new booking uses one session.</span></div>
+        <label class="paid-option field full"><input id="clientPaidInput" type="checkbox"> Payment received for this package</label>
         <label class="paid-option field full" id="renewPackageField" hidden><input id="renewPackageInput" type="checkbox"> Renew package and reset remaining sessions</label>
       </div>
       <div class="form-actions">
@@ -562,6 +605,7 @@
       const PACKAGE_STORAGE_KEY = "daybook-packages-v1";
       const APP_STATE_KEY = "daybook-state-v1";
       const LOW_SESSION_THRESHOLD = 2;
+      const DEFAULT_PACKAGE_BALANCE = 10;
       const $ = (selector) => document.querySelector(selector);
       const list = $("#bookingList");
       const dialog = $("#bookingDialog");
@@ -574,6 +618,7 @@
       const weekGrid = $("#weekGrid");
       const clientList = $("#clientList");
       const packageList = $("#packageList");
+      const logList = $("#logList");
       const initialState = loadState();
       let bookings = initialState.bookings;
       let clients = initialState.clients;
@@ -595,7 +640,8 @@
             ...item,
             packageName: typeof item.packageName === "string" ? item.packageName : "",
             clientId: typeof item.clientId === "string" ? item.clientId : null,
-            packageCycleId: typeof item.packageCycleId === "string" ? item.packageCycleId : null
+            packageCycleId: typeof item.packageCycleId === "string" ? item.packageCycleId : null,
+            packageBalance: Number.isInteger(item.packageBalance) && item.packageBalance >= 0 ? item.packageBalance : null
           })) : [];
         } catch (error) {
           console.error("Could not load saved bookings.", error);
@@ -613,7 +659,9 @@
             ...client,
             totalSessions: Number.isInteger(client.totalSessions) && client.totalSessions > 0 ? client.totalSessions : null,
             sessionsRemaining: Number.isInteger(client.sessionsRemaining) && client.sessionsRemaining >= 0 ? client.sessionsRemaining : null,
-            packageCycleId: typeof client.packageCycleId === "string" ? client.packageCycleId : null
+            packageCycleId: typeof client.packageCycleId === "string" ? client.packageCycleId : null,
+            packagePaid: Boolean(client.packagePaid),
+            packagePaidAt: typeof client.packagePaidAt === "string" ? client.packagePaidAt : null
           })) : [];
         } catch (error) {
           console.error("Could not load saved clients.", error);
@@ -648,7 +696,8 @@
                   ...item,
                   packageName: typeof item.packageName === "string" ? item.packageName : "",
                   clientId: typeof item.clientId === "string" ? item.clientId : null,
-                  packageCycleId: typeof item.packageCycleId === "string" ? item.packageCycleId : null
+                  packageCycleId: typeof item.packageCycleId === "string" ? item.packageCycleId : null,
+                  packageBalance: Number.isInteger(item.packageBalance) && item.packageBalance >= 0 ? item.packageBalance : null
                 })),
                 clients: state.clients.filter((client) =>
                   client && typeof client.id === "string" && typeof client.name === "string" &&
@@ -657,7 +706,9 @@
                   ...client,
                   totalSessions: Number.isInteger(client.totalSessions) && client.totalSessions > 0 ? client.totalSessions : null,
                   sessionsRemaining: Number.isInteger(client.sessionsRemaining) && client.sessionsRemaining >= 0 ? client.sessionsRemaining : null,
-                  packageCycleId: typeof client.packageCycleId === "string" ? client.packageCycleId : null
+                  packageCycleId: typeof client.packageCycleId === "string" ? client.packageCycleId : null,
+                  packagePaid: Boolean(client.packagePaid),
+                  packagePaidAt: typeof client.packagePaidAt === "string" ? client.packagePaidAt : null
                 })),
                 packages: Array.isArray(state.packages)
                   ? state.packages.filter((item) =>
@@ -720,6 +771,31 @@
         return `${client.sessionsRemaining} of ${client.totalSessions} sessions left`;
       }
 
+      function packageBalanceValue(packageName) {
+        const item = packageName ? packages.find((entry) => entry.name === packageName) : null;
+        return item ? String(item.totalSessions) : "";
+      }
+
+      function balanceForClient(client) {
+        return packageBalanceValue(client ? client.packageName : "")
+          || (client && Number.isInteger(client.sessionsRemaining) && client.sessionsRemaining >= 0
+            ? String(client.sessionsRemaining)
+            : "")
+          || String(DEFAULT_PACKAGE_BALANCE);
+      }
+
+      function populateBookingPackageOptions(selectedName) {
+        const sorted = packages.slice().sort((a, b) => a.name.localeCompare(b.name));
+        const options = [`<option value="">No package selected</option>`].concat(
+          sorted.map((item) => `<option value="${escapeHtml(item.name)}">${escapeHtml(item.name)} · ${item.totalSessions} sessions</option>`)
+        );
+        if (selectedName && !sorted.some((item) => item.name === selectedName)) {
+          options.push(`<option value="${escapeHtml(selectedName)}">${escapeHtml(selectedName)} · custom package</option>`);
+        }
+        $("#packageInput").innerHTML = options.join("");
+        $("#packageInput").value = selectedName || "";
+      }
+
       function updateSessionDurationHint() {
         const date = $("#dateInput").value;
         const time = $("#timeInput").value;
@@ -775,8 +851,42 @@
         client.sessionsRemaining = Math.min(client.totalSessions, client.sessionsRemaining + 1);
       }
 
+      function bookingPackagePaid(booking) {
+        const client = booking.clientId ? clients.find((item) => item.id === booking.clientId) : null;
+        if (!client) return Boolean(booking.paid);
+        if (!booking.packageCycleId || booking.packageCycleId === client.packageCycleId) {
+          return Boolean(client.packagePaid);
+        }
+        return Boolean(booking.paid);
+      }
+
+      function setClientPackagePaid(client, paid) {
+        const previousPaid = client.packagePaid;
+        const previousPaidAt = client.packagePaidAt;
+        const previousBookings = bookings;
+        client.packagePaid = paid;
+        client.packagePaidAt = paid ? new Date().toISOString() : null;
+        bookings = bookings.map((booking) =>
+          booking.clientId === client.id && (!booking.packageCycleId || booking.packageCycleId === client.packageCycleId)
+            ? { ...booking, paid }
+            : booking
+        );
+        if (!saveClients()) {
+          client.packagePaid = previousPaid;
+          client.packagePaidAt = previousPaidAt;
+          bookings = previousBookings;
+          return false;
+        }
+        return true;
+      }
+
       function isUpcoming(booking) {
         return new Date(`${booking.date}T${booking.time}:00`).getTime() >= Date.now();
+      }
+
+      function isSessionOver(booking) {
+        const end = new Date(`${booking.date}T${booking.time}:00`).getTime() + 60 * 60 * 1000;
+        return Date.now() >= end;
       }
 
       function renderWeek() {
@@ -796,12 +906,14 @@
           const entries = dayBookings.length
             ? dayBookings.map((booking) => {
               const times = formatSessionTimes(booking.date, booking.time);
-              return `<button class="week-item" type="button" data-action="edit" data-id="${escapeHtml(booking.id)}" aria-label="Edit booking for ${escapeHtml(booking.client)}">
+              const overdue = isSessionOver(booking);
+              return `<button class="week-item${overdue ? " overdue" : ""}" type="button" data-action="edit" data-id="${escapeHtml(booking.id)}" aria-label="Edit booking for ${escapeHtml(booking.client)}${overdue ? " (session over)" : ""}">
                 <div class="week-item-time">${escapeHtml(`${times.start} – ${times.end}`)}</div>
                 <div class="week-item-client">${escapeHtml(booking.client)}</div>
                 ${booking.packageName ? `<div class="week-item-status">${escapeHtml(booking.packageName)}</div>` : ""}
                 ${booking.clientId ? `<div class="week-item-status">${escapeHtml(sessionBalanceText(clients.find((client) => client.id === booking.clientId)))}</div>` : ""}
-                <div class="week-item-status">${booking.paid ? "Paid" : "Unpaid"}</div>
+                ${overdue ? '<div class="week-item-status overdue-status">Session over</div>' : ""}
+                <div class="week-item-status">${bookingPackagePaid(booking) ? "Package paid" : "Unpaid"}</div>
               </button>`;
             }).join("")
             : '<div class="week-empty">No bookings</div>';
@@ -820,13 +932,15 @@
         const now = new Date();
         const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
         $("#upcomingCount").textContent = bookings.filter(isUpcoming).length;
-        $("#unpaidCount").textContent = bookings.filter((booking) => !booking.paid).length;
-        $("#paidCount").textContent = bookings.filter((booking) => booking.paid && booking.date.startsWith(thisMonth)).length;
+        $("#unpaidCount").textContent = clients.filter((client) => !client.packagePaid).length;
+        $("#paidCount").textContent = clients.filter((client) =>
+          client.packagePaid && client.packagePaidAt && client.packagePaidAt.startsWith(thisMonth)
+        ).length;
 
         const query = $("#searchInput").value.trim().toLocaleLowerCase();
         const status = $("#filterSelect").value;
         const shown = bookings
-          .filter((booking) => status === "all" || (status === "paid") === Boolean(booking.paid))
+          .filter((booking) => status === "all" || (status === "paid") === bookingPackagePaid(booking))
           .filter((booking) => !query || `${booking.client} ${booking.packageName || ""} ${booking.notes || ""}`.toLocaleLowerCase().includes(query))
           .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`));
 
@@ -849,13 +963,8 @@
                 <div><div class="booking-time">${escapeHtml(`${times.start} – ${times.end}`)}</div><div class="booking-date">${escapeHtml(formatDate(booking.date, { month: "short", day: "numeric", year: "numeric" }))}</div></div>
                 <div class="booking-main"><div class="client-name">${escapeHtml(booking.client)}</div><div class="notes">${details ? escapeHtml(details) : "No notes"}</div></div>
                 <div class="booking-actions">
-                  <span class="badge ${booking.paid ? "paid" : "unpaid"}">${booking.paid ? "Paid" : "Unpaid"}</span>
+                  <span class="badge ${bookingPackagePaid(booking) ? "paid" : "unpaid"}">${bookingPackagePaid(booking) ? "Package paid" : "Unpaid"}</span>
                   <div class="row-actions">
-                    <button class="icon-button" type="button" data-action="payment" data-id="${escapeHtml(booking.id)}" aria-label="${booking.paid ? "Mark unpaid" : "Mark paid"}">
-                      ${booking.paid
-                        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7 10 17l-5-5"/></svg>'
-                        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg>'}
-                    </button>
                     <button class="icon-button" type="button" data-action="edit" data-id="${escapeHtml(booking.id)}" aria-label="Edit ${escapeHtml(booking.client)}">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5 4 4M4 20l4-.8L19.2 8a2.1 2.1 0 0 0-3-3L5 16.2 4 20Z"/></svg>
                     </button>
@@ -871,6 +980,7 @@
         renderWeek();
         renderClients();
         renderPackages();
+        renderLogs();
       }
 
       function escapeHtml(value) {
@@ -888,14 +998,16 @@
         $("#clientInput").setCustomValidity("");
         const savedClient = booking && booking.clientId && clients.find((client) => client.id === booking.clientId);
         $("#clientIdInput").value = booking ? booking.clientId || "" : "";
-        $("#packageInput").value = booking ? booking.packageName || (savedClient && savedClient.packageName) || "" : "";
-        $("#sessionsRemainingInput").value = savedClient ? sessionBalanceText(savedClient) : "";
+        const selectedPackageName = booking ? booking.packageName || (savedClient && savedClient.packageName) || "" : "";
+        populateBookingPackageOptions(selectedPackageName);
+        $("#sessionsRemainingInput").value = booking && Number.isInteger(booking.packageBalance) && booking.packageBalance >= 0
+          ? String(booking.packageBalance)
+          : balanceForClient(savedClient);
         $("#dateInput").value = booking ? booking.date : todayForInput();
         $("#timeInput").value = booking ? booking.time : "";
         $("#timeInput").setCustomValidity("");
         updateSessionDurationHint();
         $("#notesInput").value = booking ? booking.notes || "" : "";
-        $("#paidInput").checked = booking ? Boolean(booking.paid) : false;
         dialog.showModal();
         $("#clientInput").focus();
       }
@@ -928,10 +1040,16 @@
                   <div class="client-name">${escapeHtml(client.name)}</div>
                   <div class="client-package">${escapeHtml(client.packageName)}</div>
                   <div class="client-balance">${configured ? `${remaining} of ${client.totalSessions} sessions left · ${client.totalSessions - remaining} used` : "Session balance not set · edit client to configure"}</div>
+                  <div class="client-balance"><span class="badge ${client.packagePaid ? "paid" : "unpaid"}">${client.packagePaid ? "Package paid" : "Awaiting payment"}</span></div>
                   ${low ? `<span class="package-warning">Almost done · ${remaining} left</span>` : ""}
                   ${configured && remaining === 0 ? '<span class="package-warning">Package used · renew to book</span>' : ""}
                 </div>
                 <div class="row-actions">
+                  <button class="icon-button" type="button" data-action="toggle-payment" data-id="${escapeHtml(client.id)}" aria-label="${client.packagePaid ? "Mark package unpaid" : "Mark package paid"}">
+                    ${client.packagePaid
+                      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7 10 17l-5-5"/></svg>'
+                      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg>'}
+                  </button>
                   <button class="icon-button" type="button" data-action="edit-client" data-id="${escapeHtml(client.id)}" aria-label="Edit ${escapeHtml(client.name)}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5 4 4M4 20l4-.8L19.2 8a2.1 2.1 0 0 0-3-3L5 16.2 4 20Z"/></svg>
                   </button>
@@ -969,6 +1087,59 @@
         $("#packageFooter").textContent = `${packages.length} ${packages.length === 1 ? "package" : "packages"}`;
       }
 
+      function logsForClient(client) {
+        return bookings
+          .filter((booking) => booking.clientId === client.id)
+          .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`))
+          .map((booking, index) => ({ booking, sessionNumber: index + 1 }))
+          .reverse();
+      }
+
+      function renderLogs() {
+        const sorted = clients.slice().sort((a, b) => a.name.localeCompare(b.name));
+        if (!sorted.length) {
+          logList.innerHTML = `<div class="empty">
+            <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M16 5.2a3.5 3.5 0 0 1 0 6.6M18 14a5 5 0 0 1 3 4.6V20"/></svg></div>
+            <h3>No clients yet</h3><p>Register a client to track their consumed sessions.</p>
+          </div>`;
+          $("#logFooter").textContent = "0 clients · 0 sessions logged";
+          return;
+        }
+
+        let totalSessions = 0;
+        logList.innerHTML = sorted.map((client) => {
+          const logs = logsForClient(client);
+          totalSessions += logs.length;
+          const balance = Number.isInteger(client.totalSessions) && Number.isInteger(client.sessionsRemaining)
+            ? `${client.sessionsRemaining} of ${client.totalSessions} sessions left`
+            : "Session balance not set";
+          const entries = logs.length
+            ? `<ol class="log-entries">${logs.map(({ booking, sessionNumber }) => {
+              const times = formatSessionTimes(booking.date, booking.time);
+              const recorded = booking.createdAt ? new Date(booking.createdAt) : null;
+              const recordedText = recorded && !Number.isNaN(recorded.getTime())
+                ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(recorded)
+                : "";
+              return `<li class="log-entry">
+                <div class="log-entry-top"><span class="log-session">Session ${sessionNumber}</span><span class="badge ${bookingPackagePaid(booking) ? "paid" : "unpaid"}">${bookingPackagePaid(booking) ? "Package paid" : "Unpaid"}</span></div>
+                <div class="log-entry-date">${escapeHtml(formatDate(booking.date, { weekday: "short", month: "short", day: "numeric", year: "numeric" }))}</div>
+                <div class="log-entry-time">${escapeHtml(`${times.start} – ${times.end}`)}</div>
+                <div class="log-entry-meta">${booking.packageName ? `Package: ${escapeHtml(booking.packageName)}` : "No package recorded"}${Number.isInteger(booking.packageBalance) ? ` · Balance: ${booking.packageBalance}` : ""}</div>
+                ${recordedText ? `<div class="log-entry-meta">Recorded: ${escapeHtml(recordedText)}</div>` : ""}
+              </li>`;
+            }).join("")}</ol>`
+            : '<div class="log-empty">No sessions consumed yet.</div>';
+          return `<details class="log-client">
+            <summary><span class="log-client-name">${escapeHtml(client.name)}</span><span class="log-client-summary">${logs.length} ${logs.length === 1 ? "session" : "sessions"} logged · ${escapeHtml(balance)}</span></summary>
+            <div class="log-client-body">
+              <div class="log-client-package">Package: ${escapeHtml(client.packageName)}</div>
+              ${entries}
+            </div>
+          </details>`;
+        }).join("");
+        $("#logFooter").textContent = `${clients.length} ${clients.length === 1 ? "client" : "clients"} · ${totalSessions} ${totalSessions === 1 ? "session" : "sessions"} logged`;
+      }
+
       function openClientForm(client) {
         editingClientId = client ? client.id : null;
         clientForm.reset();
@@ -984,6 +1155,7 @@
         $("#clientPackageTemplate").value = matchingPackage ? matchingPackage.id : "";
         $("#clientPackageInput").value = client ? client.packageName : "";
         $("#totalSessionsInput").value = client && Number.isInteger(client.totalSessions) ? client.totalSessions : "";
+        $("#clientPaidInput").checked = client ? Boolean(client.packagePaid) : false;
         $("#renewPackageField").hidden = !client;
         $("#renewPackageInput").checked = false;
         clientDialog.showModal();
@@ -1038,7 +1210,8 @@
         $("#weekPanel").hidden = view !== "week";
         $("#clientsPanel").hidden = view !== "clients";
         $("#packagesPanel").hidden = view !== "packages";
-        [["schedule", "scheduleTab"], ["week", "weekTab"], ["clients", "clientsTab"], ["packages", "packagesTab"]].forEach(([name, id]) => {
+        $("#logsPanel").hidden = view !== "logs";
+        [["schedule", "scheduleTab"], ["week", "weekTab"], ["clients", "clientsTab"], ["packages", "packagesTab"], ["logs", "logsTab"]].forEach(([name, id]) => {
           const selected = name === view;
           const tab = $(`#${id}`);
           tab.classList.toggle("active", selected);
@@ -1047,14 +1220,16 @@
         $("#addButtonText").textContent = view === "clients"
           ? "Add client"
           : view === "packages" ? "Add package" : "Add booking";
+        if (view === "week") renderWeek();
       }
 
       function packageForTypedClient() {
         const typedName = $("#clientInput").value.trim().toLocaleLowerCase();
         const client = clients.find((item) => item.name.toLocaleLowerCase() === typedName);
-        $("#packageInput").value = client ? client.packageName : "";
+        const selectedPackageName = client ? client.packageName : "";
+        populateBookingPackageOptions(selectedPackageName);
         $("#clientIdInput").value = client ? client.id : "";
-        $("#sessionsRemainingInput").value = client ? sessionBalanceText(client) : "";
+        $("#sessionsRemainingInput").value = balanceForClient(client);
         $("#clientInput").setCustomValidity("");
       }
 
@@ -1070,6 +1245,9 @@
       $("#closePackageDialog").addEventListener("click", () => packageDialog.close());
       $("#cancelPackageButton").addEventListener("click", () => packageDialog.close());
       $("#clientInput").addEventListener("input", packageForTypedClient);
+      $("#packageInput").addEventListener("change", () => {
+        $("#sessionsRemainingInput").value = packageBalanceValue($("#packageInput").value) || String(DEFAULT_PACKAGE_BALANCE);
+      });
       $("#clientPackageTemplate").addEventListener("change", () => {
         const selected = packages.find((item) => item.id === $("#clientPackageTemplate").value);
         if (!selected) return;
@@ -1110,6 +1288,12 @@
         const existing = clients.find((client) => client.id === editingClientId);
         const packageChanged = existing && (existing.packageName !== packageName || existing.totalSessions !== totalSessions);
         const resetBalance = !existing || packageChanged || $("#renewPackageInput").checked;
+        const packagePaid = $("#clientPaidInput").checked;
+        const packagePaidAt = packagePaid
+          ? (existing && existing.packagePaid && !resetBalance && existing.packagePaidAt
+            ? existing.packagePaidAt
+            : new Date().toISOString())
+          : null;
         const updated = {
           id: editingClientId || (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`),
           name,
@@ -1121,14 +1305,25 @@
           packageCycleId: resetBalance || !existing.packageCycleId
             ? (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`)
             : existing.packageCycleId,
+          packagePaid,
+          packagePaidAt,
           createdAt: existing ? existing.createdAt : new Date().toISOString()
         };
         const previous = clients;
+        const previousBookings = bookings;
+        if (existing && !resetBalance) {
+          bookings = bookings.map((booking) =>
+            booking.clientId === existing.id && (!booking.packageCycleId || booking.packageCycleId === existing.packageCycleId)
+              ? { ...booking, paid: packagePaid }
+              : booking
+          );
+        }
         clients = existing
           ? clients.map((client) => client.id === editingClientId ? updated : client)
           : [...clients, updated];
         if (!saveClients()) {
           clients = previous;
+          bookings = previousBookings;
           return;
         }
         clientDialog.close();
@@ -1223,6 +1418,7 @@
       $("#weekTab").addEventListener("click", () => setView("week"));
       $("#clientsTab").addEventListener("click", () => setView("clients"));
       $("#packagesTab").addEventListener("click", () => setView("packages"));
+      $("#logsTab").addEventListener("click", () => setView("logs"));
       $("#previousWeek").addEventListener("click", () => { weekOffset -= 1; renderWeek(); });
       $("#nextWeek").addEventListener("click", () => { weekOffset += 1; renderWeek(); });
       $("#currentWeek").addEventListener("click", () => { weekOffset = 0; renderWeek(); });
@@ -1237,6 +1433,9 @@
         if (!button) return;
         const client = clients.find((item) => item.id === button.dataset.id);
         if (!client) return;
+        if (button.dataset.action === "toggle-payment") {
+          if (setClientPackagePaid(client, !client.packagePaid)) render();
+        }
         if (button.dataset.action === "edit-client") openClientForm(client);
         if (button.dataset.action === "delete-client") requestDeleteClient(client);
       });
@@ -1255,11 +1454,38 @@
         const data = new FormData(form);
         const existing = bookings.find((booking) => booking.id === editingId);
         const clientName = String(data.get("client")).trim();
+        if (!clientName) {
+          $("#clientInput").setCustomValidity("Enter a client name.");
+          $("#clientInput").reportValidity();
+          $("#clientInput").setCustomValidity("");
+          return;
+        }
         const selectedClient = clients.find((client) =>
-          client.id === $("#clientIdInput").value
-          && client.name.toLocaleLowerCase() === clientName.toLocaleLowerCase()
+          client.name.toLocaleLowerCase() === clientName.toLocaleLowerCase()
         );
-        const clientId = selectedClient ? selectedClient.id : null;
+        const rawPackageName = $("#packageInput").value.trim();
+        const bookingPackageName = rawPackageName || "Custom package";
+        const balanceInput = $("#sessionsRemainingInput").value;
+        const balanceNumber = Number(balanceInput);
+        const packageBalance = balanceInput !== "" && Number.isInteger(balanceNumber) && balanceNumber >= 0
+          ? balanceNumber
+          : DEFAULT_PACKAGE_BALANCE;
+        let pendingClient = null;
+        if (!selectedClient) {
+          const newId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          pendingClient = {
+            id: newId,
+            name: clientName,
+            packageName: bookingPackageName,
+            totalSessions: Math.max(1, packageBalance),
+            sessionsRemaining: Math.max(0, packageBalance - 1),
+            packageCycleId: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            packagePaid: false,
+            packagePaidAt: null,
+            createdAt: new Date().toISOString()
+          };
+        }
+        const clientId = selectedClient ? selectedClient.id : pendingClient.id;
         const keepsClient = Boolean(existing && existing.clientId === clientId);
         if (selectedClient && !keepsClient && !canUsePackageSession(selectedClient)) {
           const configured = Number.isInteger(selectedClient.totalSessions)
@@ -1277,20 +1503,15 @@
           date: String(data.get("date")),
           time: String(data.get("time")),
           notes: String(data.get("notes") || "").trim(),
-          packageName: $("#packageInput").value.trim(),
+          packageName: bookingPackageName,
+          packageBalance,
           clientId,
           packageCycleId: selectedClient
             ? (keepsClient ? existing.packageCycleId : selectedClient.packageCycleId)
-            : null,
-          paid: $("#paidInput").checked,
+            : pendingClient.packageCycleId,
+          paid: selectedClient ? Boolean(selectedClient.packagePaid) : false,
           createdAt: existing ? existing.createdAt : new Date().toISOString()
         };
-        if (!updated.client) {
-          $("#clientInput").setCustomValidity("Enter a client name.");
-          $("#clientInput").reportValidity();
-          $("#clientInput").setCustomValidity("");
-          return;
-        }
         if (hasBookingOverlap(updated)) {
           $("#timeInput").setCustomValidity("This time overlaps another 1-hour booking. Choose a different time.");
           $("#timeInput").reportValidity();
@@ -1298,6 +1519,7 @@
         }
         const previous = bookings;
         const previousClients = clients.map((client) => ({ ...client }));
+        if (pendingClient) clients.push(pendingClient);
         if (existing && existing.clientId && existing.clientId !== clientId) {
           restorePackageSession(existing, clients);
         }
@@ -1320,18 +1542,16 @@
         const booking = bookings.find((item) => item.id === button.dataset.id);
         if (!booking) return;
         if (button.dataset.action === "edit") openForm(booking);
-        if (button.dataset.action === "payment") {
-          const previous = bookings;
-          bookings = bookings.map((item) => item.id === booking.id ? { ...item, paid: !item.paid } : item);
-          if (!saveBookings()) bookings = previous;
-          render();
-        }
         if (button.dataset.action === "delete") requestDelete(booking);
       });
 
       $("#todayLabel").textContent = new Intl.DateTimeFormat(undefined, {
         weekday: "long", month: "long", day: "numeric"
       }).format(new Date());
+      populateBookingPackageOptions("");
+      window.setInterval(() => {
+        if (activeView === "week") renderWeek();
+      }, 60 * 1000);
       render();
     })();
 

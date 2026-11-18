@@ -2,8 +2,9 @@ import SwiftUI
 
 struct BookingRow: View {
     let booking: Booking
+    let isPackagePaid: Bool
     let onEdit: () -> Void
-    let onTogglePayment: () -> Void
+    let isSessionOver: Bool = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -17,7 +18,12 @@ struct BookingRow: View {
                         .foregroundStyle(.secondary)
                     Text("\(booking.startDate.formatted(date: .omitted, time: .shortened)) – \(booking.startDate.addingTimeInterval(60 * 60).formatted(date: .omitted, time: .shortened))")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(isSessionOver ? Color.red : Color.secondary)
+                    if isSessionOver {
+                        Text("Session over")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.red)
+                    }
                     if let packageName = booking.packageName, !packageName.isEmpty {
                         Text("Package: \(packageName)")
                             .font(.subheadline)
@@ -36,23 +42,28 @@ struct BookingRow: View {
             .buttonStyle(.plain)
             .accessibilityHint("Opens booking details for editing")
 
-            Button(action: onTogglePayment) {
-                Label(
-                    booking.isPaid ? "Paid" : "Unpaid",
-                    systemImage: booking.isPaid ? "checkmark.circle.fill" : "circle"
-                )
-                .font(.caption.weight(.medium))
-                .foregroundStyle(booking.isPaid ? .green : .orange)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 6)
-                .background(
-                    (booking.isPaid ? Color.green : Color.orange).opacity(0.12),
-                    in: Capsule()
-                )
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(booking.isPaid ? "Mark unpaid" : "Mark paid")
+            Label(
+                isPackagePaid ? "Package paid" : "Unpaid",
+                systemImage: isPackagePaid ? "checkmark.circle.fill" : "circle"
+            )
+            .font(.caption.weight(.medium))
+            .foregroundStyle(isPackagePaid ? .green : .orange)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .background(
+                (isPackagePaid ? Color.green : Color.orange).opacity(0.12),
+                in: Capsule()
+            )
+            .accessibilityLabel(isPackagePaid ? "Package paid" : "Unpaid")
         }
         .padding(.vertical, 5)
+        .overlay(alignment: .leading) {
+            if isSessionOver {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.red)
+                    .frame(width: 3)
+                    .padding(.vertical, 8)
+            }
+        }
     }
 }

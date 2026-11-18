@@ -5,6 +5,7 @@ struct ClientFormView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query private var clients: [Client]
+    @Query private var bookings: [Booking]
     @Query(sort: \ServicePackage.name, order: .forward) private var packages: [ServicePackage]
 
     private let client: Client?
@@ -14,6 +15,8 @@ struct ClientFormView: View {
     @State private var totalSessions: String
     @State private var selectedPackageID: UUID?
     @State private var renewPackage: Bool
+    @State private var packagePaid: Bool
+    @State private var packagePaidAt: Date?
     @State private var errorMessage: String?
 
     init(client: Client? = nil) {
@@ -27,6 +30,8 @@ struct ClientFormView: View {
         }
         _selectedPackageID = State(initialValue: nil)
         _renewPackage = State(initialValue: false)
+        _packagePaid = State(initialValue: client?.packagePaid ?? false)
+        _packagePaidAt = State(initialValue: client?.packagePaidAt)
     }
 
     var body: some View {
@@ -73,6 +78,16 @@ struct ClientFormView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     Text("Package templates only fill these details; editing a template won’t change existing client balances.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("Payment") {
+                    Toggle("Package fully paid", isOn: $packagePaid)
+                    if packagePaid, let paidAt = packagePaidAt {
+                        LabeledContent("Paid on", value: paidAt.formatted(date: .abbreviated, time: .shortened))
+                    }
+                    Text("One payment covers every session in this package cycle.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -132,14 +147,33 @@ struct ClientFormView: View {
             let previousTotal = client.totalSessions
             let previousRemaining = client.sessionsRemaining
             let previousCycle = client.packageCycleID
+            let previousPaid = client.packagePaid
+            let previousPaidAt = client.packagePaidAt
+            let previousBookingStatus = Dictionary(uniqueKeysWithValues: bookings.map { ($0.id, $0.isPaid) })
             let packageChanged = client.packageName != cleanedPackage || client.totalSessions != newTotal
+            let resetPackage = packageChanged || renewPackage || previousRemaining == nil || previousCycle == nil
+            let newPaidAt: Date? = packagePaid
+                ? (!resetPackage && previousPaid ? (previousPaidAt ?? Date()) : Date())
+                : nil
+
             client.name = cleanedName
             client.packageName = cleanedPackage
             client.totalSessions = newTotal
-            if packageChanged || renewPackage || client.sessionsRemaining == nil || client.packageCycleID == nil {
+            client.packagePaid = packagePaid
+            client.packagePaidAt = newPaidAt
+            packagePaidAt = newPaidAt
+
+            if resetPackage {
                 client.sessionsRemaining = newTotal
                 client.packageCycleID = UUID()
+            } else {
+                for booking in bookings {
+                    guard booking.clientID == client.id,
+                          booking.packageCycleID == nil || booking.packageCycleID == previousCycle else { continue }
+                    booking.isPaid = packagePaid
+                }
             }
+
             do {
                 try modelContext.save()
                 dismiss()
@@ -149,6 +183,14 @@ struct ClientFormView: View {
                 client.totalSessions = previousTotal
                 client.sessionsRemaining = previousRemaining
                 client.packageCycleID = previousCycle
+                client.packagePaid = previousPaid
+                client.packagePaidAt = previousPaidAt
+                packagePaidAt = previousPaidAt
+                for (id, wasPaid) in previousBookingStatus {
+                    if let booking = bookings.first(where: { $0.id == id }) {
+                        booking.isPaid = wasPaid
+                    }
+                }
                 errorMessage = error.localizedDescription
             }
         } else {
@@ -157,7 +199,9 @@ struct ClientFormView: View {
                 packageName: cleanedPackage,
                 totalSessions: newTotal,
                 sessionsRemaining: newTotal,
-                packageCycleID: UUID()
+                packageCycleID: UUID(),
+                packagePaid: packagePaid,
+                packagePaidAt: packagePaid ? Date() : nil
             )
             modelContext.insert(newClient)
             do {

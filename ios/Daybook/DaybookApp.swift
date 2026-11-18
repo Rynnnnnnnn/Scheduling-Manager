@@ -25,6 +25,11 @@ struct DaybookApp: App {
                     .tabItem {
                         Label("Packages", systemImage: "shippingbox")
                     }
+
+                LogsView()
+                    .tabItem {
+                        Label("Logs", systemImage: "clock.arrow.circlepath")
+                    }
             }
         }
         .modelContainer(for: [Booking.self, Client.self, ServicePackage.self])

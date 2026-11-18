@@ -9,6 +9,8 @@ final class Client {
     var totalSessions: Int?
     var sessionsRemaining: Int?
     var packageCycleID: UUID?
+    var packagePaid: Bool = false
+    var packagePaidAt: Date?
 
     init(
         id: UUID = UUID(),
@@ -16,7 +18,9 @@ final class Client {
         packageName: String,
         totalSessions: Int? = nil,
         sessionsRemaining: Int? = nil,
-        packageCycleID: UUID? = nil
+        packageCycleID: UUID? = nil,
+        packagePaid: Bool = false,
+        packagePaidAt: Date? = nil
     ) {
         self.id = id
         self.name = name
@@ -24,5 +28,7 @@ final class Client {
         self.totalSessions = totalSessions
         self.sessionsRemaining = sessionsRemaining
         self.packageCycleID = packageCycleID
+        self.packagePaid = packagePaid
+        self.packagePaidAt = packagePaidAt
     }
 }

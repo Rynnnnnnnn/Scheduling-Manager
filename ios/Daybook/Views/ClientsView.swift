@@ -5,6 +5,7 @@ struct ClientsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \Client.name, order: .forward) private var clients: [Client]
+    @Query(sort: \Booking.startDate, order: .forward) private var bookings: [Booking]
 
     @State private var isShowingForm = false
     @State private var selectedClient: Client?
@@ -56,11 +57,28 @@ struct ClientsView: View {
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                     }
+                                    Label(
+                                        client.packagePaid ? "Package paid" : "Awaiting payment",
+                                        systemImage: client.packagePaid ? "checkmark.circle.fill" : "clock"
+                                    )
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(client.packagePaid ? .green : .orange)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
+                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                Button {
+                                    setPackagePaid(for: client, paid: !client.packagePaid)
+                                } label: {
+                                    Label(
+                                        client.packagePaid ? "Mark unpaid" : "Mark paid",
+                                        systemImage: client.packagePaid ? "xmark.circle" : "checkmark.circle"
+                                    )
+                                }
+                                .tint(client.packagePaid ? .orange : .green)
+                            }
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
                                     clientToDelete = client
@@ -80,6 +98,7 @@ struct ClientsView: View {
                     .listStyle(.insetGrouped)
                     .animation(smoothAnimation, value: clients.map(\.id))
                     .animation(smoothAnimation, value: clients.map(\.sessionsRemaining))
+                    .animation(smoothAnimation, value: clients.map(\.packagePaid))
                 }
             }
             .navigationTitle("Clients")
@@ -127,6 +146,35 @@ struct ClientsView: View {
             } message: {
                 Text(errorMessage ?? "Please try again.")
             }
+        }
+    }
+
+    private func setPackagePaid(for client: Client, paid: Bool) {
+        let previousPaid = client.packagePaid
+        let previousPaidAt = client.packagePaidAt
+        let previousBookingStatus = Dictionary(uniqueKeysWithValues: bookings.map { ($0.id, $0.isPaid) })
+
+        withAnimation(smoothAnimation) {
+            client.packagePaid = paid
+            client.packagePaidAt = paid ? Date() : nil
+            for booking in bookings {
+                guard booking.clientID == client.id,
+                      booking.packageCycleID == nil || booking.packageCycleID == client.packageCycleID else { continue }
+                booking.isPaid = paid
+            }
+        }
+
+        do {
+            try modelContext.save()
+        } catch {
+            withAnimation(smoothAnimation) {
+                client.packagePaid = previousPaid
+                client.packagePaidAt = previousPaidAt
+                for booking in bookings {
+                    booking.isPaid = previousBookingStatus[booking.id] ?? booking.isPaid
+                }
+            }
+            errorMessage = error.localizedDescription
         }
     }
 
